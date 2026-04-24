@@ -1,0 +1,96 @@
+.templates-page {
+  padding-bottom: 40px;
+}
+
+.templates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.template-card {
+  padding: 24px;
+}
+
+.template-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.template-icon {
+  font-size: 32px;
+}
+
+.template-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 12px;
+}
+
+.template-preview {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.template-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.template-tone {
+  font-size: 13px;
+  color: #667eea;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.template-uses {
+  font-size: 12px;
+  color: #999;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.form-hint {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #888;
+}
+
+.badge-positive {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.badge-negative {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.badge-neutral {
+  background: #f5f5f5;
+  color: #616161;
+}
+
+.badge-apology {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.badge-thank_you {
+  background: #e3f2fd;
+  color: #1565c0;
+}

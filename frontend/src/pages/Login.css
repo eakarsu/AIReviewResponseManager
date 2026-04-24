@@ -1,0 +1,145 @@
+.login-page {
+  display: flex;
+  min-height: 100vh;
+}
+
+.login-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.login-logo {
+  font-size: 60px;
+  margin-bottom: 16px;
+}
+
+.login-header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 8px;
+}
+
+.login-header p {
+  color: #666;
+  font-size: 16px;
+}
+
+.login-form {
+  background: white;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.btn-full {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+}
+
+.demo-btn {
+  margin-top: 12px;
+}
+
+.login-footer {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.demo-info {
+  background: #f0f4ff;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+}
+
+/* Features Panel */
+.login-features {
+  flex: 1;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.login-features h2 {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 40px;
+}
+
+.feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.feature-icon {
+  font-size: 40px;
+  flex-shrink: 0;
+}
+
+.feature-item h3 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.feature-item p {
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .login-page {
+    flex-direction: column;
+  }
+
+  .login-features {
+    padding: 40px;
+  }
+
+  .login-features h2 {
+    font-size: 28px;
+    margin-bottom: 24px;
+  }
+
+  .feature-list {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .login-container {
+    padding: 20px;
+  }
+
+  .login-form {
+    padding: 24px;
+  }
+
+  .login-features {
+    padding: 24px;
+  }
+}

@@ -1,0 +1,79 @@
+.drafts-page {
+  padding-bottom: 40px;
+}
+
+.drafts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.draft-card {
+  padding: 24px;
+}
+
+.draft-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  cursor: pointer;
+}
+
+.draft-review-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.draft-review-info .reviewer-name {
+  font-weight: 600;
+  color: #1a1a2e;
+  font-size: 16px;
+}
+
+.draft-status-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.draft-original,
+.draft-response {
+  margin-bottom: 16px;
+  cursor: pointer;
+}
+
+.draft-original strong,
+.draft-response strong {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.draft-original p {
+  font-size: 14px;
+  color: #555;
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 0;
+}
+
+.draft-response p {
+  font-size: 14px;
+  color: #333;
+  background: #e8f5e9;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.draft-actions {
+  display: flex;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}

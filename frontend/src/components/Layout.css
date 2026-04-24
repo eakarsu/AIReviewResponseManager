@@ -1,0 +1,238 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.layout > .sidebar {
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 100;
+}
+
+.layout > .sidebar.open {
+  width: 260px;
+}
+
+.layout > .sidebar.closed {
+  width: 70px;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.logo-icon {
+  font-size: 28px;
+}
+
+.logo-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.sidebar-toggle {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Navigation */
+.sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.2s;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.nav-item.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.nav-icon {
+  font-size: 20px;
+  width: 24px;
+  text-align: center;
+}
+
+.nav-label {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.nav-divider {
+  padding: 16px 16px 8px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 8px;
+}
+
+.layout > .sidebar.closed .nav-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0;
+  margin: 12px 8px;
+}
+
+.layout > .sidebar.closed .nav-divider span {
+  display: none;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+  padding: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.user-email {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255, 71, 87, 0.2);
+  border: none;
+  border-radius: 10px;
+  color: #ff4757;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 71, 87, 0.3);
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  margin-left: 260px;
+  background: #f5f7fa;
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+.layout > .sidebar.closed + .main-content,
+.layout > .sidebar.closed ~ .main-content {
+  margin-left: 70px;
+}
+
+.content-wrapper {
+  padding: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .layout > .sidebar.open {
+    width: 260px;
+  }
+
+  .layout > .sidebar.closed {
+    width: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+  }
+
+  .sidebar-toggle {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 101;
+  }
+}

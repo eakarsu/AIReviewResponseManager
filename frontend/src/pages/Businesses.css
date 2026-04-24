@@ -1,0 +1,72 @@
+.businesses-page {
+  padding-bottom: 40px;
+}
+
+.businesses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.business-card {
+  padding: 24px;
+}
+
+.business-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.business-icon {
+  font-size: 32px;
+}
+
+.business-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+}
+
+.business-category {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 16px;
+}
+
+.business-info {
+  margin-bottom: 16px;
+}
+
+.business-address,
+.business-phone {
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+.business-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.business-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.business-rating .stars {
+  color: #ffc107;
+  font-size: 16px;
+}
+
+.business-reviews {
+  font-size: 13px;
+  color: #666;
+}
