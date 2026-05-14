@@ -23,6 +23,9 @@ const Layout = ({ children }) => {
     { path: '/competitors', label: 'Competitors', icon: '🏆' },
     { path: '/personalizer', label: 'Personalizer', icon: '✨' },
     { path: '/solicitations', label: 'Solicitor', icon: '📧' },
+    { path: '/reputation', label: 'Reputation Score', icon: '⭐' },
+    { path: '/bulk-import', label: 'Bulk Import', icon: '📥' },
+    { path: '/semantic-search', label: 'Semantic Search', icon: '🔎' },
     { type: 'divider', label: 'Settings' },
     { path: '/settings', label: 'Settings', icon: '⚙️' },
   ];

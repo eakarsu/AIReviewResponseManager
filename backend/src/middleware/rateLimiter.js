@@ -16,4 +16,17 @@ const apiLimiter = rateLimit({
   legacyHeaders: false
 });
 
-module.exports = { authLimiter, apiLimiter };
+// AI-specific rate limiter: 20 requests per hour per user ID or IP
+const aiRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  keyGenerator: (req) => {
+    // Use authenticated user ID if available, otherwise fall back to IP
+    return req.user ? `user_${req.user.id}` : req.ip;
+  },
+  message: { error: 'AI rate limit exceeded. Maximum 20 AI requests per hour.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+module.exports = { authLimiter, apiLimiter, aiRateLimiter };
