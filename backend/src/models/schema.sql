@@ -1,4 +1,6 @@
 -- Drop tables if they exist
+DROP TABLE IF EXISTS auto_respond_configs CASCADE;
+DROP TABLE IF EXISTS ai_results CASCADE;
 DROP TABLE IF EXISTS response_drafts CASCADE;
 DROP TABLE IF EXISTS reviews CASCADE;
 DROP TABLE IF EXISTS templates CASCADE;
@@ -59,6 +61,7 @@ CREATE TABLE businesses (
 CREATE TABLE reviews (
     id SERIAL PRIMARY KEY,
     business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE,
+    external_id VARCHAR(255),
     platform VARCHAR(50) NOT NULL, -- 'google' or 'yelp'
     reviewer_name VARCHAR(255) NOT NULL,
     reviewer_avatar TEXT,
@@ -109,9 +112,41 @@ CREATE TABLE settings (
     UNIQUE(user_id, setting_key)
 );
 
+-- AI Results persistence table
+CREATE TABLE ai_results (
+    id SERIAL PRIMARY KEY,
+    feature VARCHAR(100) NOT NULL,
+    business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL,
+    input_summary TEXT,
+    result_text TEXT,
+    result_json JSONB,
+    model_used VARCHAR(100),
+    tokens_used INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_ai_results_feature ON ai_results(feature);
+CREATE INDEX idx_ai_results_business_id ON ai_results(business_id);
+
+-- Auto-respond configs table
+CREATE TABLE auto_respond_configs (
+    id SERIAL PRIMARY KEY,
+    business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+    enabled BOOLEAN DEFAULT false,
+    min_rating INTEGER DEFAULT 1,
+    max_rating INTEGER DEFAULT 5,
+    tone VARCHAR(50) DEFAULT 'professional',
+    signature TEXT,
+    respond_to_platforms TEXT[],
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(business_id)
+);
+
 -- Fake Review Detections table
 CREATE TABLE fake_review_detections (
     id SERIAL PRIMARY KEY,
+    business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL,
     review_text TEXT NOT NULL,
     reviewer_name VARCHAR(255),
     platform VARCHAR(50),
@@ -130,6 +165,7 @@ CREATE TABLE fake_review_detections (
 -- Review Summaries table (E-commerce)
 CREATE TABLE review_summaries (
     id SERIAL PRIMARY KEY,
+    business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL,
     product_name VARCHAR(255) NOT NULL,
     product_category VARCHAR(100),
     total_reviews INTEGER,
@@ -148,6 +184,7 @@ CREATE TABLE review_summaries (
 -- Trend Analyses table
 CREATE TABLE trend_analyses (
     id SERIAL PRIMARY KEY,
+    business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL,
     analysis_name VARCHAR(255) NOT NULL,
     business_name VARCHAR(255),
     date_range_start DATE,
@@ -166,6 +203,7 @@ CREATE TABLE trend_analyses (
 -- Counterfeit Detections table (E-commerce)
 CREATE TABLE counterfeit_detections (
     id SERIAL PRIMARY KEY,
+    business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL,
     product_name VARCHAR(255) NOT NULL,
     seller_name VARCHAR(255),
     platform VARCHAR(50),
@@ -184,6 +222,7 @@ CREATE TABLE counterfeit_detections (
 -- Competitor Monitors table
 CREATE TABLE competitor_monitors (
     id SERIAL PRIMARY KEY,
+    business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL,
     competitor_name VARCHAR(255) NOT NULL,
     competitor_platform VARCHAR(50),
     business_category VARCHAR(100),
@@ -203,6 +242,7 @@ CREATE TABLE competitor_monitors (
 -- Personalized Responses table
 CREATE TABLE personalized_responses (
     id SERIAL PRIMARY KEY,
+    business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL,
     reviewer_name VARCHAR(255) NOT NULL,
     reviewer_profile JSONB,
     original_review TEXT,
@@ -220,6 +260,7 @@ CREATE TABLE personalized_responses (
 -- Review Solicitations table
 CREATE TABLE review_solicitations (
     id SERIAL PRIMARY KEY,
+    business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL,
     customer_name VARCHAR(255) NOT NULL,
     customer_email VARCHAR(255),
     customer_phone VARCHAR(50),
@@ -231,6 +272,8 @@ CREATE TABLE review_solicitations (
     personalized_message TEXT,
     ai_timing_reason TEXT,
     status VARCHAR(50) DEFAULT 'scheduled',
+    scheduled_at TIMESTAMP,
+    scheduled_status VARCHAR(50) DEFAULT 'pending',
     sent_at TIMESTAMP,
     response_received BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -255,3 +298,4 @@ CREATE INDEX idx_counterfeit_status ON counterfeit_detections(status);
 CREATE INDEX idx_competitor_status ON competitor_monitors(monitoring_status);
 CREATE INDEX idx_personalized_status ON personalized_responses(status);
 CREATE INDEX idx_solicitation_status ON review_solicitations(status);
+CREATE UNIQUE INDEX idx_reviews_external_id_platform ON reviews(external_id, platform) WHERE external_id IS NOT NULL;

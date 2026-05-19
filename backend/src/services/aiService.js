@@ -1,8 +1,47 @@
 require('dotenv').config({ path: '../../.env' });
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'anthropic/claude-haiku-4.5';
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'anthropic/claude-3-5-sonnet-20241022';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+// PII sanitization: strip emails and phone numbers from review text
+const sanitizePII = (text) => {
+  if (!text) return '';
+  return text
+    .replace(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g, '[EMAIL]')
+    .replace(/(\+?1?\s?)?(\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4})/g, '[PHONE]');
+};
+
+// Sanitize for prompt injection: escape backticks and limit length
+const sanitizeForPrompt = (text, maxLen = 2000) => {
+  if (!text) return '';
+  return sanitizePII(text)
+    .replace(/`/g, "'")
+    .replace(/\$/g, '\\$')
+    .slice(0, maxLen);
+};
+
+// 3-strategy JSON parser
+const parseAIJson = (content) => {
+  // Strategy 1: try direct JSON parse
+  try {
+    return JSON.parse(content);
+  } catch (_) {}
+
+  // Strategy 2: extract JSON from markdown code block
+  try {
+    const codeBlock = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (codeBlock) return JSON.parse(codeBlock[1].trim());
+  } catch (_) {}
+
+  // Strategy 3: extract first {...} block
+  try {
+    const jsonBlock = content.match(/\{[\s\S]*\}/);
+    if (jsonBlock) return JSON.parse(jsonBlock[0]);
+  } catch (_) {}
+
+  return null;
+};
 
 const generateResponse = async (review, tone = 'professional', template = null) => {
   const toneDescriptions = {
@@ -14,11 +53,12 @@ const generateResponse = async (review, tone = 'professional', template = null) 
 
   const toneDesc = toneDescriptions[tone] || toneDescriptions.professional;
 
+  const safeReviewText = sanitizeForPrompt(review.review_text);
   let prompt = `You are a business owner responding to customer reviews. Generate a ${toneDesc} response to the following review.
 
 Review Rating: ${review.rating}/5 stars
 Reviewer: ${review.reviewer_name}
-Review: "${review.review_text}"
+Review: "${safeReviewText}"
 
 ${template ? `Use this template as a guide but personalize it:\n${template}\n\n` : ''}
 
@@ -67,9 +107,10 @@ Response:`;
 };
 
 const analyzeSentiment = async (reviewText) => {
+  const safeText = sanitizeForPrompt(reviewText);
   const prompt = `Analyze the sentiment of this review and respond with ONLY one word: "positive", "neutral", or "negative".
 
-Review: "${reviewText}"
+Review: "${safeText}"
 
 Sentiment:`;
 
@@ -111,9 +152,10 @@ Sentiment:`;
 };
 
 const extractKeywords = async (reviewText) => {
+  const safeText = sanitizeForPrompt(reviewText);
   const prompt = `Extract the main keywords/topics from this review. Return ONLY a comma-separated list of 3-5 keywords.
 
-Review: "${reviewText}"
+Review: "${safeText}"
 
 Keywords:`;
 
@@ -200,9 +242,10 @@ Category:`;
 // ==================== NEW AI FEATURES ====================
 
 const detectFakeReview = async (reviewText, reviewerName = '', platform = '') => {
+  const safeText = sanitizeForPrompt(reviewText);
   const prompt = `You are an expert fraud analyst specializing in fake review detection. Perform a thorough, detailed analysis of this review to determine if it is fake, spam, or fraudulent.
 
-Review: "${reviewText}"
+Review: "${safeText}"
 Reviewer: ${reviewerName || 'Unknown'}
 Platform: ${platform || 'Unknown'}
 
@@ -246,8 +289,8 @@ JSON Response:`;
     if (data.error) throw new Error(data.error.message);
 
     const content = data.choices[0].message.content.trim();
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    return jsonMatch ? JSON.parse(jsonMatch[0]) : { fake_probability: 50, confidence_score: 50, red_flags: [], analysis: content };
+    const parsed = parseAIJson(content);
+    return parsed || { fake_probability: 50, confidence_score: 50, red_flags: [], analysis: content };
   } catch (error) {
     console.error('Fake Review Detection Error:', error);
     throw error;
@@ -560,6 +603,136 @@ JSON Response:`;
   }
 };
 
+// Reputation score AI narrative
+const generateReputationNarrative = async (businessName, scoreData) => {
+  const prompt = `You are a business reputation analyst. Generate a concise 2-3 sentence narrative about the reputation score for "${businessName}".
+
+Score Data:
+${JSON.stringify(scoreData, null, 2)}
+
+Respond with ONLY a JSON object:
+{
+  "narrative": "2-3 sentence assessment of the business reputation",
+  "key_strengths": ["strength 1", "strength 2"],
+  "key_concerns": ["concern 1", "concern 2"],
+  "priority_action": "single most impactful action to improve score"
+}
+
+JSON Response:`;
+
+  try {
+    const response = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'http://localhost:3000',
+        'X-Title': 'AI Review Response Manager'
+      },
+      body: JSON.stringify({
+        model: OPENROUTER_MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 600,
+        temperature: 0.5
+      })
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+    const content = data.choices[0].message.content.trim();
+    return parseAIJson(content) || { narrative: content };
+  } catch (error) {
+    console.error('Reputation Narrative Error:', error);
+    return { narrative: 'Unable to generate narrative at this time.' };
+  }
+};
+
+// Auto-respond using AI
+const generateAutoResponse = async (review, config) => {
+  const safeText = sanitizeForPrompt(review.review_text);
+  const prompt = `You are a business owner on autopilot responding to customer reviews. Generate a ${config.tone || 'professional'} response.
+
+Review Rating: ${review.rating}/5 stars
+Review: "${safeText}"
+Business: ${config.business_name || 'Our Business'}
+Signature: ${config.signature || '- The Team'}
+
+Rules: Keep under 150 words. Be genuine. ${review.rating <= 2 ? 'Acknowledge the issue and invite offline contact.' : 'Thank them and encourage a return visit.'}
+
+Response (text only, no JSON):`;
+
+  try {
+    const response = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'http://localhost:3000',
+        'X-Title': 'AI Review Response Manager'
+      },
+      body: JSON.stringify({
+        model: OPENROUTER_MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 300,
+        temperature: 0.7
+      })
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+    return data.choices[0].message.content.trim();
+  } catch (error) {
+    console.error('Auto-Response Generation Error:', error);
+    throw error;
+  }
+};
+
+// Semantic search ranking
+const semanticSearchReviews = async (query, reviews) => {
+  const prompt = `You are a semantic search engine. Rank these reviews by relevance to the query and return results.
+
+Query: "${sanitizeForPrompt(query, 500)}"
+
+Reviews to rank (JSON):
+${JSON.stringify(reviews.map(r => ({ id: r.id, text: sanitizeForPrompt(r.review_text, 300), rating: r.rating, reviewer: r.reviewer_name })))}
+
+Return ONLY a JSON array of objects ranked from most to least relevant:
+[
+  { "id": <review_id>, "relevance_score": <0-100>, "match_reason": "brief reason why this matches" },
+  ...
+]
+
+JSON Response:`;
+
+  try {
+    const response = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'http://localhost:3000',
+        'X-Title': 'AI Review Response Manager'
+      },
+      body: JSON.stringify({
+        model: OPENROUTER_MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1000,
+        temperature: 0.2
+      })
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+    const content = data.choices[0].message.content.trim();
+    // Try to parse array
+    try {
+      const arr = content.match(/\[[\s\S]*\]/);
+      if (arr) return JSON.parse(arr[0]);
+    } catch (_) {}
+    return [];
+  } catch (error) {
+    console.error('Semantic Search Error:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   generateResponse,
   analyzeSentiment,
@@ -572,5 +745,148 @@ module.exports = {
   detectCounterfeit,
   analyzeCompetitor,
   personalizeResponse,
-  generateSolicitation
+  generateSolicitation,
+  // Additional production features
+  generateReputationNarrative,
+  generateAutoResponse,
+  semanticSearchReviews,
+  sanitizePII,
+  sanitizeForPrompt,
+  parseAIJson,
+  // Audit-driven additions
+  scoreResponseQuality,
+  reputationRiskAlert,
+  translateResponse,
+  // Apply pass 4 mechanical
+  suggestTeamAssignment,
+  retentionTargetsFromReviews
 };
+
+// ===== Score response quality =====
+async function scoreResponseQuality(review, response, brandVoice) {
+  const prompt = `You are a customer-experience reviewer. Score the quality of a response to a customer review.
+
+Original review: "${sanitizeForPrompt(review.review_text || review, 800)}" rating=${review.rating || 'unknown'}
+Response: "${sanitizeForPrompt(response, 800)}"
+Brand voice notes: ${sanitizeForPrompt(brandVoice || 'professional, empathetic', 400)}
+
+Return ONLY JSON:
+{
+  "overall_score": 0-100,
+  "dimensions": {
+    "addresses_specific_concerns": 0-100,
+    "empathy": 0-100,
+    "ownership_and_solution": 0-100,
+    "brand_voice_match": 0-100,
+    "concise_and_clear": 0-100,
+    "tone_appropriate_for_rating": 0-100
+  },
+  "strengths": [],
+  "issues": [],
+  "rewrite_suggestion": "",
+  "summary": ""
+}`;
+  const r = await fetch(OPENROUTER_URL, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'http://localhost:3000', 'X-Title': 'AI Review Response Manager' },
+    body: JSON.stringify({ model: OPENROUTER_MODEL, messages: [{ role: 'user', content: prompt }], max_tokens: 1200, temperature: 0.3 })
+  });
+  const data = await r.json();
+  if (data.error) throw new Error(data.error.message);
+  return parseAIJson(data.choices[0].message.content) || { raw: data.choices[0].message.content };
+}
+
+// ===== Reputation risk alert =====
+async function reputationRiskAlert(businessName, recentReviews, baseline) {
+  const sample = (recentReviews || []).slice(0, 30).map(r => ({ rating: r.rating, text: sanitizeForPrompt(r.review_text, 400), createdAt: r.created_at || r.createdAt }));
+  const prompt = `You are a reputation-risk analyst. Flag whether the business is heading toward a reputation crisis.
+
+Business: ${sanitizeForPrompt(businessName, 200)}
+Baseline (e.g. avg rating, reply rate): ${JSON.stringify(baseline || {})}
+Recent reviews: ${JSON.stringify(sample)}
+
+Return ONLY JSON:
+{
+  "risk_level": "none|low|moderate|high|critical",
+  "trend": "improving|stable|worsening",
+  "drivers": [{"theme": "", "evidence_review_indices": [], "severity": "low|medium|high"}],
+  "predicted_impact_if_unaddressed": "",
+  "recommended_actions": [{"action": "", "owner": "marketing|ops|leadership|product", "urgency": "immediate|24h|this_week"}],
+  "talking_points_for_response_team": [],
+  "summary": ""
+}`;
+  const r = await fetch(OPENROUTER_URL, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'http://localhost:3000', 'X-Title': 'AI Review Response Manager' },
+    body: JSON.stringify({ model: OPENROUTER_MODEL, messages: [{ role: 'user', content: prompt }], max_tokens: 1500, temperature: 0.3 })
+  });
+  const data = await r.json();
+  if (data.error) throw new Error(data.error.message);
+  return parseAIJson(data.choices[0].message.content) || { raw: data.choices[0].message.content };
+}
+
+// ===== Team assignment suggester (Apply pass 4) =====
+async function suggestTeamAssignment(review, teamMembers, workloadHints) {
+  const sample = (teamMembers || []).slice(0, 25).map(m => ({
+    id: m.id, name: m.name, role: m.role, languages: m.languages,
+    expertise: m.expertise, current_open: m.current_open
+  }));
+  const prompt = `You are an operations lead routing review responses to team members. Pick the best owner for the review.
+
+Review: rating=${review.rating || 'unknown'} platform=${review.platform || 'unknown'} text="${sanitizeForPrompt(review.review_text || review.text || '', 800)}"
+Workload hints: ${sanitizeForPrompt(workloadHints || 'balance load', 400)}
+Team:
+${JSON.stringify(sample, null, 2)}
+
+Return ONLY JSON: { "suggested_owner_id": any, "reasoning": "", "alternates": [{"id": any, "reason": ""}], "sla_minutes": number, "tags": [] }.`;
+  const r = await fetch(OPENROUTER_URL, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'http://localhost:3000', 'X-Title': 'AI Review Response Manager' },
+    body: JSON.stringify({ model: OPENROUTER_MODEL, messages: [{ role: 'user', content: prompt }], max_tokens: 800, temperature: 0.3 })
+  });
+  const data = await r.json();
+  if (data.error) throw new Error(data.error.message);
+  return parseAIJson(data.choices[0].message.content) || { raw: data.choices[0].message.content };
+}
+
+// ===== Retention targeting from negative reviews (Apply pass 4) =====
+async function retentionTargetsFromReviews(businessName, recentReviews, retentionPlaybook) {
+  const negative = (recentReviews || [])
+    .filter(r => Number(r.rating) <= 3)
+    .slice(0, 30)
+    .map(r => ({ id: r.id, rating: r.rating, text: sanitizeForPrompt(r.review_text || '', 500), createdAt: r.created_at }));
+  const prompt = `You are a customer retention strategist. From the recent negative reviews, identify the highest-value customers to target with retention outreach and a tactical plan.
+
+Business: ${sanitizeForPrompt(businessName || 'Unknown', 200)}
+Playbook hints: ${sanitizeForPrompt(retentionPlaybook || 'standard apology + comp + follow-up', 400)}
+Negative reviews (${negative.length}):
+${JSON.stringify(negative, null, 2)}
+
+Return ONLY JSON: { "targets": [{ "review_id": any, "priority": "high|medium|low", "outreach_channel": "", "offer": "", "talking_points": [], "expected_save_rate_pct": number }], "themes": [], "global_actions": [], "summary": "" }.`;
+  const r = await fetch(OPENROUTER_URL, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'http://localhost:3000', 'X-Title': 'AI Review Response Manager' },
+    body: JSON.stringify({ model: OPENROUTER_MODEL, messages: [{ role: 'user', content: prompt }], max_tokens: 1500, temperature: 0.3 })
+  });
+  const data = await r.json();
+  if (data.error) throw new Error(data.error.message);
+  return parseAIJson(data.choices[0].message.content) || { raw: data.choices[0].message.content };
+}
+
+// ===== Multi-language response translation =====
+async function translateResponse(originalResponse, targetLanguage, preserveTone = true) {
+  const prompt = `Translate the following review-response into ${targetLanguage}. ${preserveTone ? 'Preserve the brand voice, tone and any specific commitments verbatim where possible.' : ''} Return ONLY JSON: { "translated": "", "language": "${targetLanguage}", "back_translation_for_qa": "", "notes": "" }.
+
+Source response:
+"""
+${sanitizeForPrompt(originalResponse, 1500)}
+"""`;
+  const r = await fetch(OPENROUTER_URL, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'http://localhost:3000', 'X-Title': 'AI Review Response Manager' },
+    body: JSON.stringify({ model: OPENROUTER_MODEL, messages: [{ role: 'user', content: prompt }], max_tokens: 1200, temperature: 0.2 })
+  });
+  const data = await r.json();
+  if (data.error) throw new Error(data.error.message);
+  return parseAIJson(data.choices[0].message.content) || { raw: data.choices[0].message.content };
+}

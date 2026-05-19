@@ -33,6 +33,37 @@ import ResponsePersonalizer from './pages/ResponsePersonalizer';
 import PersonalizerDetail from './pages/PersonalizerDetail';
 import ReviewSolicitor from './pages/ReviewSolicitor';
 import SolicitorDetail from './pages/SolicitorDetail';
+import ReputationScore from './pages/ReputationScore';
+import BulkImport from './pages/BulkImport';
+import SemanticSearch from './pages/SemanticSearch';
+import ResponseQualityScorer from './pages/ResponseQualityScorer';
+import ReputationRiskAlert from './pages/ReputationRiskAlert';
+import TranslateResponse from './pages/TranslateResponse';
+import TeamAssignmentSuggester from './pages/TeamAssignmentSuggester';
+import RetentionTargets from './pages/RetentionTargets';
+import CustomViewsPage from './pages/CustomViewsPage';
+
+// === Batch 07 Gaps & Frontend Mounts ===
+import CfPersonalizedResponseGeneration from './pages/CfPersonalizedResponseGeneration';
+import CfFakeReviewIdentification from './pages/CfFakeReviewIdentification';
+import CfReputationTrendForecasting from './pages/CfReputationTrendForecasting';
+import CfMultilanguageResponse from './pages/CfMultilanguageResponse';
+import CfCompetitorBenchmarkDashboard from './pages/CfCompetitorBenchmarkDashboard';
+import CfCustomerRetentionTargeting from './pages/CfCustomerRetentionTargeting';
+import GapNoGenerateresponseAidraftedResponses from './pages/GapNoGenerateresponseAidraftedResponses';
+import GapNoSentimentanalysisClassifySentimentUrge from './pages/GapNoSentimentanalysisClassifySentimentUrge';
+import GapNoFakereviewdetectorMlScoring from './pages/GapNoFakereviewdetectorMlScoring';
+import GapNoCompetitorsentimentAi from './pages/GapNoCompetitorsentimentAi';
+import GapNoResponsequalityscorer from './pages/GapNoResponsequalityscorer';
+import GapNoReputationriskalertForecastingBranddama from './pages/GapNoReputationriskalertForecastingBranddama';
+import GapNoReviewAggregationFromGoogleYelpTripa from './pages/GapNoReviewAggregationFromGoogleYelpTripa';
+import GapNoPublishingToMultiplePlatforms from './pages/GapNoPublishingToMultiplePlatforms';
+import GapLimitedTeamCollaborationAssignmentCommen from './pages/GapLimitedTeamCollaborationAssignmentCommen';
+import GapNoAnalyticsDashboardResponseRateTimetor from './pages/GapNoAnalyticsDashboardResponseRateTimetor';
+import GapNoNotificationsForNewReviews from './pages/GapNoNotificationsForNewReviews';
+import GapNoSmsemailSolicitorChannelIntegration from './pages/GapNoSmsemailSolicitorChannelIntegration';
+// === End Batch 07 ===
+
 import './App.css';
 
 const ProtectedRoute = ({ children }) => {
@@ -253,7 +284,99 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/reputation"
+                element={
+                  <ProtectedRoute>
+                    <ReputationScore />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/bulk-import"
+                element={
+                  <ProtectedRoute>
+                    <BulkImport />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/semantic-search"
+                element={
+                  <ProtectedRoute>
+                    <SemanticSearch />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quality-scorer"
+                element={
+                  <ProtectedRoute>
+                    <ResponseQualityScorer />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reputation-risk"
+                element={
+                  <ProtectedRoute>
+                    <ReputationRiskAlert />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/translate-response"
+                element={
+                  <ProtectedRoute>
+                    <TranslateResponse />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/team-assignment"
+                element={
+                  <ProtectedRoute>
+                    <TeamAssignmentSuggester />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/retention-targets"
+                element={
+                  <ProtectedRoute>
+                    <RetentionTargets />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/custom-views"
+                element={
+                  <ProtectedRoute>
+                    <CustomViewsPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<Navigate to="/" replace />} />
+          // === Batch 07 Gaps & Frontend Mounts ===
+          <Route path='/cf-personalized-response-generation' element={<CfPersonalizedResponseGeneration />} />
+          <Route path='/cf-fake-review-identification' element={<CfFakeReviewIdentification />} />
+          <Route path='/cf-reputation-trend-forecasting' element={<CfReputationTrendForecasting />} />
+          <Route path='/cf-multilanguage-response' element={<CfMultilanguageResponse />} />
+          <Route path='/cf-competitor-benchmark-dashboard' element={<CfCompetitorBenchmarkDashboard />} />
+          <Route path='/cf-customer-retention-targeting' element={<CfCustomerRetentionTargeting />} />
+          <Route path='/gap-no-generateresponse-aidrafted-responses' element={<GapNoGenerateresponseAidraftedResponses />} />
+          <Route path='/gap-no-sentimentanalysis-classify-sentiment-urge' element={<GapNoSentimentanalysisClassifySentimentUrge />} />
+          <Route path='/gap-no-fakereviewdetector-ml-scoring' element={<GapNoFakereviewdetectorMlScoring />} />
+          <Route path='/gap-no-competitorsentiment-ai' element={<GapNoCompetitorsentimentAi />} />
+          <Route path='/gap-no-responsequalityscorer' element={<GapNoResponsequalityscorer />} />
+          <Route path='/gap-no-reputationriskalert-forecasting-branddama' element={<GapNoReputationriskalertForecastingBranddama />} />
+          <Route path='/gap-no-review-aggregation-from-google-yelp-tripa' element={<GapNoReviewAggregationFromGoogleYelpTripa />} />
+          <Route path='/gap-no-publishing-to-multiple-platforms' element={<GapNoPublishingToMultiplePlatforms />} />
+          <Route path='/gap-limited-team-collaboration-assignment-commen' element={<GapLimitedTeamCollaborationAssignmentCommen />} />
+          <Route path='/gap-no-analytics-dashboard-response-rate-timetor' element={<GapNoAnalyticsDashboardResponseRateTimetor />} />
+          <Route path='/gap-no-notifications-for-new-reviews' element={<GapNoNotificationsForNewReviews />} />
+          <Route path='/gap-no-smsemail-solicitor-channel-integration' element={<GapNoSmsemailSolicitorChannelIntegration />} />
+          // === End Batch 07 ===
             </Routes>
           </Router>
         </ToastProvider>
