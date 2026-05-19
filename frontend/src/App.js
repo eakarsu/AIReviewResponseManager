@@ -41,6 +41,7 @@ import ReputationRiskAlert from './pages/ReputationRiskAlert';
 import TranslateResponse from './pages/TranslateResponse';
 import TeamAssignmentSuggester from './pages/TeamAssignmentSuggester';
 import RetentionTargets from './pages/RetentionTargets';
+import CustomViewsPage from './pages/CustomViewsPage';
 
 // === Batch 07 Gaps & Frontend Mounts ===
 import CfPersonalizedResponseGeneration from './pages/CfPersonalizedResponseGeneration';
@@ -344,6 +345,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <RetentionTargets />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/custom-views"
+                element={
+                  <ProtectedRoute>
+                    <CustomViewsPage />
                   </ProtectedRoute>
                 }
               />

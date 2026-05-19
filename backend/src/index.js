@@ -105,6 +105,9 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Custom Views feature (4 endpoints) — must be mounted BEFORE the 404 handler
+app.use('/api/custom-views', require('./routes/customViews'));
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);
