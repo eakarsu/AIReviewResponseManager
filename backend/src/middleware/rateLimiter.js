@@ -1,5 +1,7 @@
 const rateLimit = require('express-rate-limit');
-const { ipKeyGenerator } = require('express-rate-limit');
+const { ipKeyGenerator: _ipKeyGenerator } = require('express-rate-limit');
+// Fallback if ipKeyGenerator isn't exported by this version of express-rate-limit
+const ipKeyGenerator = typeof _ipKeyGenerator === 'function' ? _ipKeyGenerator : (ip) => ip || '0.0.0.0';
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

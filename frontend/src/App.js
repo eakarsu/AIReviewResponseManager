@@ -66,6 +66,11 @@ import GapNoSmsemailSolicitorChannelIntegration from './pages/GapNoSmsemailSolic
 
 import './App.css';
 
+import CodexCustomVizFeature from './pages/CodexCustomVizFeature';
+import CodexOperationsFeature from './pages/CodexOperationsFeature';
+
+import TimelineView from './pages/TimelineView';
+
 const ProtectedRoute = ({ children }) => {
   const { token, loading } = useAuth();
 
@@ -87,6 +92,10 @@ function App() {
         <ToastProvider>
           <Router>
             <Routes>
+        <Route path="/insights/timeline" element={<ProtectedRoute><TimelineView /></ProtectedRoute>} />
+        <Route path="/codex/custom-viz" element={<ProtectedRoute><CodexCustomVizFeature /></ProtectedRoute>} />
+        <Route path="/codex/operations" element={<ProtectedRoute><CodexOperationsFeature /></ProtectedRoute>} />
+
               <Route path="/login" element={<Login />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />

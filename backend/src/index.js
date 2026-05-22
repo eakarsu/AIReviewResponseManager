@@ -108,6 +108,23 @@ app.get('/api/health', (req, res) => {
 // Custom Views feature (4 endpoints) — must be mounted BEFORE the 404 handler
 app.use('/api/custom-views', require('./routes/customViews'));
 
+// === Mounted before 404 handler ===
+app.use('/api/ai/generate-response', require('./routes/ai-generate-response'));
+app.use('/api/gap-no-generateresponse-aidrafted-responses', require('./routes/gap-no-generateresponse-aidrafted-responses'));
+app.use('/api/gap-no-sentimentanalysis-classify-sentiment-urge', require('./routes/gap-no-sentimentanalysis-classify-sentiment-urge'));
+app.use('/api/gap-no-fakereviewdetector-ml-scoring', require('./routes/gap-no-fakereviewdetector-ml-scoring'));
+app.use('/api/gap-no-competitorsentiment-ai', require('./routes/gap-no-competitorsentiment-ai'));
+app.use('/api/gap-no-responsequalityscorer', require('./routes/gap-no-responsequalityscorer'));
+app.use('/api/gap-no-reputationriskalert-forecasting-branddama', require('./routes/gap-no-reputationriskalert-forecasting-branddama'));
+app.use('/api/gap-no-review-aggregation-from-google-yelp-tripa', require('./routes/gap-no-review-aggregation-from-google-yelp-tripa'));
+app.use('/api/gap-no-publishing-to-multiple-platforms', require('./routes/gap-no-publishing-to-multiple-platforms'));
+app.use('/api/gap-limited-team-collaboration-assignment-commen', require('./routes/gap-limited-team-collaboration-assignment-commen'));
+app.use('/api/gap-no-analytics-dashboard-response-rate-timetor', require('./routes/gap-no-analytics-dashboard-response-rate-timetor'));
+app.use('/api/gap-no-notifications-for-new-reviews', require('./routes/gap-no-notifications-for-new-reviews'));
+app.use('/api/gap-no-smsemail-solicitor-channel-integration', require('./routes/gap-no-smsemail-solicitor-channel-integration'));
+// Apply pass 6: response-assignment / analytics-dashboard / retention-targeting
+app.use('/api/ai', aiRateLimiter, require('./routes/aiCollabRoutes'));
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);
@@ -124,19 +141,4 @@ app.listen(PORT, () => {
   console.log(`API available at http://localhost:${PORT}/api`);
 });
 
-// AI feature mount: generate-response
-app.use('/api/ai/generate-response', require('./routes/ai-generate-response'));
-// === Batch 07 Gaps & Frontend Mounts ===
-app.use('/api/gap-no-generateresponse-aidrafted-responses', require('./routes/gap-no-generateresponse-aidrafted-responses'));
-app.use('/api/gap-no-sentimentanalysis-classify-sentiment-urge', require('./routes/gap-no-sentimentanalysis-classify-sentiment-urge'));
-app.use('/api/gap-no-fakereviewdetector-ml-scoring', require('./routes/gap-no-fakereviewdetector-ml-scoring'));
-app.use('/api/gap-no-competitorsentiment-ai', require('./routes/gap-no-competitorsentiment-ai'));
-app.use('/api/gap-no-responsequalityscorer', require('./routes/gap-no-responsequalityscorer'));
-app.use('/api/gap-no-reputationriskalert-forecasting-branddama', require('./routes/gap-no-reputationriskalert-forecasting-branddama'));
-app.use('/api/gap-no-review-aggregation-from-google-yelp-tripa', require('./routes/gap-no-review-aggregation-from-google-yelp-tripa'));
-app.use('/api/gap-no-publishing-to-multiple-platforms', require('./routes/gap-no-publishing-to-multiple-platforms'));
-app.use('/api/gap-limited-team-collaboration-assignment-commen', require('./routes/gap-limited-team-collaboration-assignment-commen'));
-app.use('/api/gap-no-analytics-dashboard-response-rate-timetor', require('./routes/gap-no-analytics-dashboard-response-rate-timetor'));
-app.use('/api/gap-no-notifications-for-new-reviews', require('./routes/gap-no-notifications-for-new-reviews'));
-app.use('/api/gap-no-smsemail-solicitor-channel-integration', require('./routes/gap-no-smsemail-solicitor-channel-integration'));
-// === End Batch 07 ===
+// (moved above 404 handler)
