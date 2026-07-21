@@ -5,7 +5,7 @@ const pool = require('../config/database');
 const { sendPasswordResetEmail, sendVerificationEmail } = require('../services/emailService');
 require('dotenv').config({ path: '../../.env' });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const login = async (req, res) => {
   try {
@@ -29,7 +29,7 @@ const login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.email, role: user.role },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -77,7 +77,7 @@ const register = async (req, res) => {
     await sendVerificationEmail(email, verificationToken);
 
     const token = jwt.sign(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.email, role: user.role },
       JWT_SECRET,
       { expiresIn: '7d' }
     );

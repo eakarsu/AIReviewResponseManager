@@ -1,0 +1,37 @@
+name: governance-ci
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  governed-workflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Governed workflow tests
+        run: node --test backend/src/governance/*.test.cjs
+      - name: JavaScript syntax
+        run: |
+          node --check backend/src/index.js
+          find backend/src/governance -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Launcher syntax and safety
+        run: |
+          bash -n start.sh
+          ! grep -R -E 'process\.env\.JWT_SECRET[[:space:]]*\|\|' backend --include='*.js'
+          ! grep -R -E 'rejectUnauthorized:[[:space:]]*false' backend --include='*.js'
+      - name: Additive migration boundary
+        run: |
+          grep -q governed_tenant_memberships backend/migrations/001_governed_review_response.sql
+          grep -q 'append-only' backend/migrations/001_governed_review_response.sql
+          ! grep -E 'DROP TABLE|TRUNCATE' backend/migrations/001_governed_review_response.sql
+      - name: Credential and TLS boundary
+        run: |
+          ! grep -R -E "JWT_SECRET[[:space:]]*\|\||rejectUnauthorized:[[:space:]]*false" backend --include='*.js'

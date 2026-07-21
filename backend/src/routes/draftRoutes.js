@@ -5,6 +5,8 @@ const authMiddleware = require('../middleware/auth');
 const authorize = require('../middleware/authorize');
 const validate = require('../middleware/validate');
 const { draftRules, paginationRules, bulkRules } = require('../middleware/validationRules');
+const { createProviderGate } = require('../governance/providerGate');
+const legacyProviderGate = createProviderGate(['/']);
 
 router.use(authMiddleware);
 
@@ -18,6 +20,6 @@ router.post('/', validate(draftRules.create), draftController.createDraft);
 router.put('/:id', validate(draftRules.update), draftController.updateDraft);
 router.delete('/:id', authorize('admin', 'manager'), draftController.deleteDraft);
 router.post('/:id/approve', draftController.approveDraft);
-router.post('/:id/send', draftController.sendDraft);
+router.post('/:id/send', legacyProviderGate, draftController.sendDraft);
 
 module.exports = router;
