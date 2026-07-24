@@ -9,6 +9,7 @@ const { authRules } = require('../middleware/validationRules');
 router.post('/login', authLimiter, validate(authRules.login), authController.login);
 router.post('/register', authLimiter, validate(authRules.register), authController.register);
 router.get('/profile', authMiddleware, authController.getProfile);
+router.get('/me', authMiddleware, authController.getProfile);
 router.post('/logout', authMiddleware, authController.logout);
 router.post('/forgot-password', authLimiter, validate(authRules.forgotPassword), authController.forgotPassword);
 router.post('/reset-password', validate(authRules.resetPassword), authController.resetPassword);

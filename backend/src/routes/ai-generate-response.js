@@ -32,7 +32,9 @@ async function callLLM(systemPrompt, userPrompt) {
   });
   if (!response.ok) return { success: false, error: `LLM error ${response.status}` };
   const data = await response.json();
-  return { success: true, content: data.choices?.[0]?.message?.content || '' };
+  const content = data.choices?.[0]?.message?.content?.trim();
+  if (!content) return { success: false, error: 'OpenRouter returned no substantive content' };
+  return { success: true, content };
 }
 
 function parseJsonLoose(text) {
@@ -47,11 +49,8 @@ function parseJsonLoose(text) {
 }
 
 async function persistResult(userId, endpoint, inputData, result) {
-  try {
-    await pool.query(`CREATE TABLE IF NOT EXISTS ai_results (id SERIAL PRIMARY KEY, user_id INTEGER, endpoint VARCHAR(120), input_data JSONB, result TEXT, created_at TIMESTAMP DEFAULT NOW())`);
-    await pool.query('INSERT INTO ai_results (user_id, endpoint, input_data, result) VALUES ($1,$2,$3,$4)',
-      [userId || null, endpoint, JSON.stringify(inputData || {}), typeof result === 'string' ? result : JSON.stringify(result)]);
-  } catch (err) { console.error('persist failed:', err.message); }
+  await pool.query('INSERT INTO ai_results (user_id, endpoint, input_data, result) VALUES ($1,$2,$3,$4)',
+    [userId || null, endpoint, JSON.stringify(inputData || {}), typeof result === 'string' ? result : JSON.stringify(result)]);
 }
 
 router.use(authMiddleware);
@@ -76,10 +75,10 @@ router.post('/', async (req, res) => {
 // GET /history — recent results for current user
 router.get('/history', async (req, res) => {
   try {
-    const r = await pool.query('SELECT id, endpoint, input_data, result, created_at FROM ai_results WHERE endpoint=$1 ORDER BY created_at DESC LIMIT 50', ['generate-response']);
+    const r = await pool.query('SELECT id, endpoint, input_data, result, created_at FROM ai_results WHERE endpoint=$1 AND user_id=$2 ORDER BY created_at DESC LIMIT 50', ['generate-response', req.user.id]);
     res.json({ items: r.rows });
   } catch (err) {
-    res.json({ items: [], error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
