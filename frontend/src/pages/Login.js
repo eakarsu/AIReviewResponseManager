@@ -27,8 +27,8 @@ const Login = () => {
   };
 
   const fillDemoCredentials = () => {
-    setEmail('admin@reviewmanager.com');
-    setPassword('admin123');
+    setEmail(process.env.REACT_APP_DEMO_EMAIL || '');
+    setPassword(process.env.REACT_APP_DEMO_PASSWORD || '');
   };
 
   return (
