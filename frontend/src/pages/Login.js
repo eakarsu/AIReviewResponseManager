@@ -76,7 +76,7 @@ const Login = () => {
             className="btn btn-secondary btn-full demo-btn"
             onClick={fillDemoCredentials}
           >
-            Fill Demo Credentials
+            Auto Fill Demo Credentials
           </button>
         </form>
 

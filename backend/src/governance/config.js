@@ -38,7 +38,7 @@ module.exports = {
   decisionField: 'publishCommand',
   assess: (x) => {
     const coverage=Number(x.responseCoverage), quality=Number(x.qualityScore), sla=Number(x.slaMinutes);
-    const ready=x.rightsStatus==='verified'&&x.consentStatus==='verified'&&x.privacyStatus==='passed'&&x.moderationStatus==='passed'&&coverage>=0.95&&quality>=0.9&&sla<=120;
+    const ready=x.rightsStatus==='verified'&&x.consentStatus==='verified'&&x.privacyStatus==='passed'&&x.moderationStatus==='passed'&&Number.isFinite(coverage)&&Number.isFinite(quality)&&Number.isFinite(sla)&&coverage>=0.95&&coverage<=1&&quality>=0.9&&quality<=1&&sla>=0&&sla<=120;
     return { disposition: ready?'human_publication_review_required':'coverage_quality_or_rights_hold', publishCommand:null, metrics:{responseCoverage:coverage,qualityScore:quality,slaMinutes:sla}, versions:{review:x.reviewVersion,platform:x.platformVersion,template:x.templateVersion} };
   },
 };
