@@ -80,21 +80,16 @@ if (process.env.ENABLE_LEGACY_PROVIDER_ROUTES === 'true') {
   app.use('/api/competitors', aiRateLimiter, require('./routes/competitorRoutes'));
   app.use('/api/personalizer', aiRateLimiter, require('./routes/personalizerRoutes'));
   app.use('/api/auto-respond', aiRateLimiter, require('./routes/autoRespondRoutes'));
-  app.use('/api/quality', aiRateLimiter, require('./routes/qualityRoutes'));
+  const reviewIntelligenceRoutes = require('./routes/reviewIntelligence');
+app.use('/api/review-intelligence', reviewIntelligenceRoutes);
+app.use('/api/quality', aiRateLimiter, require('./routes/qualityRoutes'));
   app.use('/api/reviews', aiRateLimiter, require('./routes/semanticSearchRoutes'));
   app.use('/api/ai/generate-response', require('./routes/ai-generate-response'));
-  app.use('/api/gap-no-generateresponse-aidrafted-responses', require('./routes/gap-no-generateresponse-aidrafted-responses'));
   app.use('/api/gap-no-sentimentanalysis-classify-sentiment-urge', require('./routes/gap-no-sentimentanalysis-classify-sentiment-urge'));
-  app.use('/api/gap-no-fakereviewdetector-ml-scoring', require('./routes/gap-no-fakereviewdetector-ml-scoring'));
   app.use('/api/gap-no-competitorsentiment-ai', require('./routes/gap-no-competitorsentiment-ai'));
-  app.use('/api/gap-no-responsequalityscorer', require('./routes/gap-no-responsequalityscorer'));
-  app.use('/api/gap-no-reputationriskalert-forecasting-branddama', require('./routes/gap-no-reputationriskalert-forecasting-branddama'));
   app.use('/api/gap-no-review-aggregation-from-google-yelp-tripa', require('./routes/gap-no-review-aggregation-from-google-yelp-tripa'));
   app.use('/api/gap-no-publishing-to-multiple-platforms', require('./routes/gap-no-publishing-to-multiple-platforms'));
-  app.use('/api/gap-limited-team-collaboration-assignment-commen', require('./routes/gap-limited-team-collaboration-assignment-commen'));
-  app.use('/api/gap-no-analytics-dashboard-response-rate-timetor', require('./routes/gap-no-analytics-dashboard-response-rate-timetor'));
   app.use('/api/gap-no-notifications-for-new-reviews', require('./routes/gap-no-notifications-for-new-reviews'));
-  app.use('/api/gap-no-smsemail-solicitor-channel-integration', require('./routes/gap-no-smsemail-solicitor-channel-integration'));
   app.use('/api/ai', aiRateLimiter, require('./routes/aiCollabRoutes'));
 }
 
