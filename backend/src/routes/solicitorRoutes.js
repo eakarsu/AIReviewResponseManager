@@ -7,6 +7,8 @@ const validate = require('../middleware/validate');
 const { solicitorRules, paginationRules, bulkRules } = require('../middleware/validationRules');
 const pool = require('../config/database');
 
+const OWNED_BUSINESS_FILTER = 'business_id IN (SELECT id FROM businesses WHERE user_id = $1)';
+
 router.get('/export/csv', authMiddleware, solicitorController.exportCSV);
 router.get('/export/pdf', authMiddleware, solicitorController.exportPDF);
 router.get('/', validate(paginationRules), solicitorController.getAllReviewSolicitations);
@@ -32,19 +34,12 @@ router.post('/:id/schedule', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'scheduled_at is required (ISO 8601 datetime)' });
     }
 
-    // Add scheduled_at column if it doesn't exist
-    await pool.query(`
-      ALTER TABLE review_solicitations
-        ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMP,
-        ADD COLUMN IF NOT EXISTS scheduled_status VARCHAR(50) DEFAULT 'pending'
-    `).catch(() => {});
-
     const result = await pool.query(`
       UPDATE review_solicitations
       SET scheduled_at = $1, scheduled_status = 'scheduled', updated_at = NOW()
-      WHERE id = $2
+      WHERE id = $2 AND business_id IN (SELECT id FROM businesses WHERE user_id = $3)
       RETURNING *
-    `, [scheduled_at, id]);
+    `, [scheduled_at, id, req.userId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Solicitation not found' });
@@ -59,42 +54,44 @@ router.post('/:id/schedule', authMiddleware, async (req, res) => {
 
 /**
  * POST /api/solicitations/process-scheduled
- * Process all due scheduled solicitations (cron job endpoint)
+ * Process all due scheduled solicitations (cron job endpoint).
+ * Rows only move out of the queue when the provider accepts the message.
  */
 router.post('/process-scheduled', authMiddleware, authorize('admin', 'manager'), async (req, res) => {
   try {
-    await pool.query(`
-      ALTER TABLE review_solicitations
-        ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMP,
-        ADD COLUMN IF NOT EXISTS scheduled_status VARCHAR(50) DEFAULT 'pending'
-    `).catch(() => {});
-
     const dueRes = await pool.query(`
       SELECT * FROM review_solicitations
       WHERE scheduled_at <= NOW()
         AND scheduled_status = 'scheduled'
+        AND ${OWNED_BUSINESS_FILTER}
       ORDER BY scheduled_at ASC
       LIMIT 50
-    `);
+    `, [req.userId]);
 
     const processed = [];
     const failed = [];
 
-    for (const sol of dueRes.rows) {
+    for (const solicitation of dueRes.rows) {
       try {
-        // Mark as processing
+        const delivery = await solicitorController.deliverSolicitation(solicitation);
+        if (!delivery.success) {
+          // Keep the row queued so a later run can retry; report the failure.
+          failed.push({ id: solicitation.id, error: delivery.error, code: delivery.code });
+          continue;
+        }
         await pool.query(
-          `UPDATE review_solicitations SET scheduled_status = 'sent', updated_at = NOW() WHERE id = $1`,
-          [sol.id]
+          `UPDATE review_solicitations
+           SET status = 'sent', sent_at = NOW(), scheduled_status = 'sent', updated_at = NOW()
+           WHERE id = $1`,
+          [solicitation.id]
         );
-        processed.push(sol.id);
-        // In production: trigger email send here via emailService
+        processed.push(solicitation.id);
       } catch (err) {
         await pool.query(
           `UPDATE review_solicitations SET scheduled_status = 'failed', updated_at = NOW() WHERE id = $1`,
-          [sol.id]
+          [solicitation.id]
         );
-        failed.push({ id: sol.id, error: err.message });
+        failed.push({ id: solicitation.id, error: err.message });
       }
     }
 

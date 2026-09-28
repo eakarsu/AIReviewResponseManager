@@ -394,9 +394,9 @@ const seedDatabase = async () => {
 
     for (const rs of reviewSolicitations) {
       await pool.query(`
-        INSERT INTO review_solicitations (customer_name, customer_email, customer_phone, purchase_date, product_service, optimal_send_time, channel, message_template, personalized_message, ai_timing_reason, status, sent_at, response_received)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-      `, [rs.customer_name, rs.customer_email, rs.customer_phone, rs.purchase_date, rs.product_service, rs.optimal_send_time, rs.channel, rs.message_template, rs.personalized_message, rs.ai_timing_reason, rs.status, rs.sent_at, rs.response_received]);
+        INSERT INTO review_solicitations (business_id, customer_name, customer_email, customer_phone, purchase_date, product_service, optimal_send_time, channel, message_template, personalized_message, ai_timing_reason, status, sent_at, response_received)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      `, [businessIds[0], rs.customer_name, rs.customer_email, rs.customer_phone, rs.purchase_date, rs.product_service, rs.optimal_send_time, rs.channel, rs.message_template, rs.personalized_message, rs.ai_timing_reason, rs.status, rs.sent_at, rs.response_received]);
     }
     console.log(`${reviewSolicitations.length} review solicitations created`);
 

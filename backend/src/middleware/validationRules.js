@@ -126,6 +126,7 @@ const personalizerRules = {
 
 const solicitorRules = {
   create: [
+    body('business_id').isInt().withMessage('Valid business ID is required'),
     body('customer_name').trim().notEmpty().withMessage('Customer name is required')
   ]
 };

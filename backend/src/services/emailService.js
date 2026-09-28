@@ -15,16 +15,13 @@ const createTransporter = () => {
   return null;
 };
 
+// Never reports success for a message that was only logged or rejected.
 const sendEmail = async ({ to, subject, html }) => {
   const transporter = createTransporter();
 
   if (!transporter) {
-    console.log('=== EMAIL (No SMTP configured - logging to console) ===');
-    console.log(`To: ${to}`);
-    console.log(`Subject: ${subject}`);
-    console.log(`Body: ${html}`);
-    console.log('=== END EMAIL ===');
-    return { success: true, method: 'console' };
+    console.warn(`Email not sent: SMTP is not configured (to: ${to}, subject: ${subject})`);
+    return { success: false, error: 'Email provider is not configured (SMTP_HOST is unset)' };
   }
 
   try {
@@ -37,9 +34,7 @@ const sendEmail = async ({ to, subject, html }) => {
     return { success: true, method: 'smtp' };
   } catch (error) {
     console.error('Email send error:', error);
-    console.log(`Fallback - Email to ${to}: ${subject}`);
-    console.log(html);
-    return { success: true, method: 'console-fallback' };
+    return { success: false, error: error.message };
   }
 };
 

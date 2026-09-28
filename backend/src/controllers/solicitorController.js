@@ -1,17 +1,43 @@
 const pool = require('../config/database');
 const aiService = require('../services/aiService');
+const emailService = require('../services/emailService');
 const { parsePagination, buildPaginationResponse, buildSortClause } = require('../middleware/pagination');
 const { Parser } = require('json2csv');
 const { generatePDF } = require('../services/pdfService');
+
+// Solicitations belong to the caller through their owning business.
+const ownedBusinessFilter = (userIdParam) => `business_id IN (SELECT id FROM businesses WHERE user_id = $${userIdParam})`;
+
+// Attempt real delivery. Callers must never mark a row as sent unless this
+// returns success.
+async function deliverSolicitation(solicitation) {
+  const channel = String(solicitation.channel || 'email').toLowerCase();
+  if (channel !== 'email') {
+    return { success: false, statusCode: 501, code: 'solicitation_channel_unavailable', error: `Solicitation channel "${channel}" is not configured for delivery` };
+  }
+  if (!solicitation.customer_email) {
+    return { success: false, statusCode: 400, code: 'solicitation_missing_email', error: 'customer_email is required to send this solicitation' };
+  }
+  const message = solicitation.personalized_message || solicitation.message_template || 'Thank you for your business! Would you mind sharing a quick review of your experience?';
+  const sendResult = await emailService.sendEmail({
+    to: solicitation.customer_email,
+    subject: 'How was your experience?',
+    html: `<p>${message}</p>`,
+  });
+  if (!sendResult.success) {
+    return { success: false, statusCode: 502, code: 'solicitation_delivery_failed', error: sendResult.error || 'Email provider rejected the message' };
+  }
+  return { success: true };
+}
 
 const getAllReviewSolicitations = async (req, res) => {
   try {
     const { status, channel, search, sort_by, sort_order } = req.query;
     const { page, limit, offset } = parsePagination(req.query);
 
-    let whereClause = ' WHERE 1=1';
-    const params = [];
-    let paramCount = 0;
+    let whereClause = ` WHERE ${ownedBusinessFilter(1)}`;
+    const params = [req.userId];
+    let paramCount = 1;
 
     if (status) {
       paramCount++;
@@ -58,8 +84,8 @@ const getReviewSolicitationById = async (req, res) => {
     const { id } = req.params;
 
     const result = await pool.query(
-      'SELECT * FROM review_solicitations WHERE id = $1',
-      [id]
+      `SELECT * FROM review_solicitations WHERE id = $1 AND ${ownedBusinessFilter(2)}`,
+      [id, req.userId]
     );
 
     if (result.rows.length === 0) {
@@ -75,13 +101,21 @@ const getReviewSolicitationById = async (req, res) => {
 
 const createReviewSolicitation = async (req, res) => {
   try {
-    const { customer_name, customer_email, customer_phone, purchase_date, product_service } = req.body;
+    const { business_id, customer_name, customer_email, customer_phone, purchase_date, product_service } = req.body;
+
+    const business = await pool.query(
+      'SELECT id FROM businesses WHERE id = $1 AND user_id = $2',
+      [business_id, req.userId]
+    );
+    if (business.rows.length === 0) {
+      return res.status(400).json({ error: 'A valid business_id owned by the caller is required' });
+    }
 
     const result = await pool.query(`
-      INSERT INTO review_solicitations (customer_name, customer_email, customer_phone, purchase_date, product_service)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO review_solicitations (business_id, customer_name, customer_email, customer_phone, purchase_date, product_service)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
-    `, [customer_name, customer_email, customer_phone, purchase_date, product_service]);
+    `, [business_id, customer_name, customer_email, customer_phone, purchase_date, product_service]);
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -94,6 +128,13 @@ const updateReviewSolicitation = async (req, res) => {
   try {
     const { id } = req.params;
     const { customer_name, customer_email, customer_phone, purchase_date, product_service, optimal_send_time, channel, message_template, personalized_message, ai_timing_reason, status, sent_at, response_received } = req.body;
+
+    if (status === 'sent' || sent_at) {
+      return res.status(400).json({
+        error: 'Sent state is set by actual delivery; use POST /api/solicitations/:id/send',
+        code: 'solicitation_sent_state_is_derived',
+      });
+    }
 
     const result = await pool.query(`
       UPDATE review_solicitations
@@ -108,12 +149,11 @@ const updateReviewSolicitation = async (req, res) => {
           personalized_message = COALESCE($9, personalized_message),
           ai_timing_reason = COALESCE($10, ai_timing_reason),
           status = COALESCE($11, status),
-          sent_at = COALESCE($12, sent_at),
-          response_received = COALESCE($13, response_received),
+          response_received = COALESCE($12, response_received),
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = $14
+      WHERE id = $13 AND ${ownedBusinessFilter(14)}
       RETURNING *
-    `, [customer_name, customer_email, customer_phone, purchase_date, product_service, optimal_send_time, channel, message_template, personalized_message, ai_timing_reason, status, sent_at, response_received, id]);
+    `, [customer_name, customer_email, customer_phone, purchase_date, product_service, optimal_send_time, channel, message_template, personalized_message, ai_timing_reason, status, response_received, id, req.userId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Solicitation not found' });
@@ -131,8 +171,8 @@ const deleteReviewSolicitation = async (req, res) => {
     const { id } = req.params;
 
     const result = await pool.query(
-      'DELETE FROM review_solicitations WHERE id = $1 RETURNING *',
-      [id]
+      `DELETE FROM review_solicitations WHERE id = $1 AND ${ownedBusinessFilter(2)} RETURNING *`,
+      [id, req.userId]
     );
 
     if (result.rows.length === 0) {
@@ -151,8 +191,8 @@ const generateSolicitation = async (req, res) => {
     const { id } = req.params;
 
     const solicitationResult = await pool.query(
-      'SELECT * FROM review_solicitations WHERE id = $1',
-      [id]
+      `SELECT * FROM review_solicitations WHERE id = $1 AND ${ownedBusinessFilter(2)}`,
+      [id, req.userId]
     );
 
     if (solicitationResult.rows.length === 0) {
@@ -186,7 +226,7 @@ const generateSolicitation = async (req, res) => {
           ai_timing_reason = $5,
           status = 'ready',
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = $6
+      WHERE id = $6 AND ${ownedBusinessFilter(7)}
       RETURNING *
     `, [
       optimalTime,
@@ -194,7 +234,8 @@ const generateSolicitation = async (req, res) => {
       analysis.message_template,
       analysis.personalized_message,
       analysis.timing_reason,
-      id
+      id,
+      req.userId
     ]);
 
     res.json(updateResult.rows[0]);
@@ -208,18 +249,40 @@ const sendSolicitation = async (req, res) => {
   try {
     const { id } = req.params;
 
+    const solicitationResult = await pool.query(
+      `SELECT * FROM review_solicitations WHERE id = $1 AND ${ownedBusinessFilter(2)}`,
+      [id, req.userId]
+    );
+
+    if (solicitationResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Solicitation not found' });
+    }
+
+    const solicitation = solicitationResult.rows[0];
+
+    if (solicitation.status === 'sent' || solicitation.sent_at) {
+      return res.status(409).json({ error: 'Solicitation was already sent' });
+    }
+
+    const channel = String(solicitation.channel || 'email').toLowerCase();
+    const delivery = await deliverSolicitation(solicitation);
+    if (!delivery.success) {
+      return res.status(delivery.statusCode).json({
+        error: delivery.error,
+        code: delivery.code,
+        status: solicitation.status,
+        queued: channel === 'email',
+      });
+    }
+
     const result = await pool.query(`
       UPDATE review_solicitations
       SET status = 'sent',
           sent_at = CURRENT_TIMESTAMP,
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
+      WHERE id = $1 AND ${ownedBusinessFilter(2)}
       RETURNING *
-    `, [id]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Solicitation not found' });
-    }
+    `, [id, req.userId]);
 
     res.json(result.rows[0]);
   } catch (error) {
@@ -230,7 +293,12 @@ const sendSolicitation = async (req, res) => {
 
 const exportCSV = async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, customer_name, customer_email, product_service, channel, status, purchase_date, optimal_send_time FROM review_solicitations ORDER BY created_at DESC');
+    const result = await pool.query(
+      `SELECT id, customer_name, customer_email, product_service, channel, status, purchase_date, optimal_send_time
+       FROM review_solicitations WHERE ${ownedBusinessFilter(1)}
+       ORDER BY created_at DESC`,
+      [req.userId]
+    );
     const parser = new Parser({ fields: ['id', 'customer_name', 'customer_email', 'product_service', 'channel', 'status', 'purchase_date', 'optimal_send_time'] });
     const csv = parser.parse(result.rows);
     res.setHeader('Content-Type', 'text/csv');
@@ -244,7 +312,10 @@ const exportCSV = async (req, res) => {
 
 const exportPDF = async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM review_solicitations ORDER BY created_at DESC');
+    const result = await pool.query(
+      `SELECT * FROM review_solicitations WHERE ${ownedBusinessFilter(1)} ORDER BY created_at DESC`,
+      [req.userId]
+    );
     generatePDF('Review Solicitations', [
       { key: 'id', label: 'ID' },
       { key: 'customer_name', label: 'Customer' },
@@ -261,7 +332,10 @@ const exportPDF = async (req, res) => {
 const bulkDelete = async (req, res) => {
   try {
     const { ids } = req.body;
-    const result = await pool.query('DELETE FROM review_solicitations WHERE id = ANY($1) RETURNING id', [ids]);
+    const result = await pool.query(
+      `DELETE FROM review_solicitations WHERE id = ANY($1) AND ${ownedBusinessFilter(2)} RETURNING id`,
+      [ids, req.userId]
+    );
     res.json({ message: `${result.rowCount} items deleted`, deleted: result.rows.map(r => r.id) });
   } catch (error) {
     console.error('Bulk delete error:', error);
@@ -273,11 +347,12 @@ const bulkUpdate = async (req, res) => {
   try {
     const { ids, updates } = req.body;
     const setClauses = [];
-    const params = [ids];
-    let paramCount = 1;
+    const params = [ids, req.userId];
+    let paramCount = 2;
     const allowed = ['status', 'channel'];
 
     Object.entries(updates).forEach(([key, value]) => {
+      if (key === 'status' && value === 'sent') return;
       if (allowed.includes(key)) {
         paramCount++;
         setClauses.push(`${key} = $${paramCount}`);
@@ -292,7 +367,9 @@ const bulkUpdate = async (req, res) => {
     setClauses.push('updated_at = CURRENT_TIMESTAMP');
 
     const result = await pool.query(
-      `UPDATE review_solicitations SET ${setClauses.join(', ')} WHERE id = ANY($1) RETURNING *`,
+      `UPDATE review_solicitations SET ${setClauses.join(', ')}
+       WHERE id = ANY($1) AND ${ownedBusinessFilter(2)}
+       RETURNING *`,
       params
     );
 
@@ -314,5 +391,6 @@ module.exports = {
   exportCSV,
   exportPDF,
   bulkDelete,
-  bulkUpdate
+  bulkUpdate,
+  deliverSolicitation
 };

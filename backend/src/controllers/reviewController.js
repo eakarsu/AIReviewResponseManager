@@ -9,9 +9,9 @@ const getAllReviews = async (req, res) => {
     const { platform, status, rating, business_id, search, sort_by, sort_order } = req.query;
     const { page, limit, offset } = parsePagination(req.query);
 
-    let whereClause = ' WHERE 1=1';
-    const params = [];
-    let paramCount = 0;
+    let whereClause = ' WHERE b.user_id = $1';
+    const params = [req.userId];
+    let paramCount = 1;
 
     if (platform) {
       paramCount++;
@@ -46,7 +46,7 @@ const getAllReviews = async (req, res) => {
     const orderClause = buildSortClause(sort_by, sort_order, ['created_at', 'rating', 'reviewer_name', 'review_date']);
 
     const countResult = await pool.query(
-      `SELECT COUNT(*) FROM reviews r${whereClause}`,
+      `SELECT COUNT(*) FROM reviews r JOIN businesses b ON r.business_id = b.id${whereClause}`,
       params
     );
     const total = parseInt(countResult.rows[0].count);
@@ -82,8 +82,8 @@ const getReviewById = async (req, res) => {
              (SELECT json_agg(d.*) FROM response_drafts d WHERE d.review_id = r.id) as drafts
       FROM reviews r
       LEFT JOIN businesses b ON r.business_id = b.id
-      WHERE r.id = $1
-    `, [id]);
+      WHERE r.id = $1 AND b.user_id = $2
+    `, [id, req.userId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Review not found' });
@@ -102,6 +102,15 @@ const createReview = async (req, res) => {
       business_id, platform, reviewer_name, reviewer_avatar,
       rating, review_text, review_date
     } = req.body;
+
+    // Reviews may only be attached to a business owned by the caller.
+    const business = await pool.query(
+      'SELECT id FROM businesses WHERE id = $1 AND user_id = $2',
+      [business_id, req.userId]
+    );
+    if (business.rows.length === 0) {
+      return res.status(404).json({ error: 'Business not found' });
+    }
 
     // Analyze sentiment using AI
     let sentiment = 'neutral';
@@ -146,9 +155,9 @@ const updateReview = async (req, res) => {
           response_status = COALESCE($5, response_status),
           sentiment = COALESCE($6, sentiment),
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = $7
+      WHERE id = $7 AND business_id IN (SELECT id FROM businesses WHERE user_id = $8)
       RETURNING *
-    `, [platform, reviewer_name, rating, review_text, response_status, sentiment, id]);
+    `, [platform, reviewer_name, rating, review_text, response_status, sentiment, id, req.userId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Review not found' });
@@ -165,7 +174,10 @@ const deleteReview = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await pool.query('DELETE FROM reviews WHERE id = $1 RETURNING *', [id]);
+    const result = await pool.query(
+      'DELETE FROM reviews WHERE id = $1 AND business_id IN (SELECT id FROM businesses WHERE user_id = $2) RETURNING *',
+      [id, req.userId]
+    );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Review not found' });
@@ -183,7 +195,11 @@ const generateAIResponse = async (req, res) => {
     const { id } = req.params;
     const { tone, template_id } = req.body;
 
-    const reviewResult = await pool.query('SELECT * FROM reviews WHERE id = $1', [id]);
+    const reviewResult = await pool.query(`
+      SELECT r.* FROM reviews r
+      JOIN businesses b ON r.business_id = b.id
+      WHERE r.id = $1 AND b.user_id = $2
+    `, [id, req.userId]);
 
     if (reviewResult.rows.length === 0) {
       return res.status(404).json({ error: 'Review not found' });
@@ -193,7 +209,7 @@ const generateAIResponse = async (req, res) => {
     let template = null;
 
     if (template_id) {
-      const templateResult = await pool.query('SELECT * FROM templates WHERE id = $1', [template_id]);
+      const templateResult = await pool.query('SELECT * FROM templates WHERE id = $1 AND user_id = $2', [template_id, req.userId]);
       if (templateResult.rows.length > 0) {
         template = templateResult.rows[0].content;
       }
@@ -228,17 +244,19 @@ const getReviewStats = async (req, res) => {
     const stats = await pool.query(`
       SELECT
         COUNT(*) as total_reviews,
-        COUNT(CASE WHEN response_status = 'pending' THEN 1 END) as pending_reviews,
-        COUNT(CASE WHEN response_status = 'draft' THEN 1 END) as draft_reviews,
-        COUNT(CASE WHEN response_status = 'responded' THEN 1 END) as responded_reviews,
-        COUNT(CASE WHEN platform = 'google' THEN 1 END) as google_reviews,
-        COUNT(CASE WHEN platform = 'yelp' THEN 1 END) as yelp_reviews,
-        ROUND(AVG(rating), 2) as average_rating,
-        COUNT(CASE WHEN sentiment = 'positive' THEN 1 END) as positive_reviews,
-        COUNT(CASE WHEN sentiment = 'negative' THEN 1 END) as negative_reviews,
-        COUNT(CASE WHEN sentiment = 'neutral' THEN 1 END) as neutral_reviews
-      FROM reviews
-    `);
+        COUNT(CASE WHEN r.response_status = 'pending' THEN 1 END) as pending_reviews,
+        COUNT(CASE WHEN r.response_status = 'draft' THEN 1 END) as draft_reviews,
+        COUNT(CASE WHEN r.response_status = 'responded' THEN 1 END) as responded_reviews,
+        COUNT(CASE WHEN r.platform = 'google' THEN 1 END) as google_reviews,
+        COUNT(CASE WHEN r.platform = 'yelp' THEN 1 END) as yelp_reviews,
+        ROUND(AVG(r.rating), 2) as average_rating,
+        COUNT(CASE WHEN r.sentiment = 'positive' THEN 1 END) as positive_reviews,
+        COUNT(CASE WHEN r.sentiment = 'negative' THEN 1 END) as negative_reviews,
+        COUNT(CASE WHEN r.sentiment = 'neutral' THEN 1 END) as neutral_reviews
+      FROM reviews r
+      JOIN businesses b ON r.business_id = b.id
+      WHERE b.user_id = $1
+    `, [req.userId]);
 
     res.json(stats.rows[0]);
   } catch (error) {
@@ -249,7 +267,13 @@ const getReviewStats = async (req, res) => {
 
 const exportCSV = async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, reviewer_name, platform, rating, review_text, response_status, sentiment, review_date FROM reviews ORDER BY created_at DESC');
+    const result = await pool.query(`
+      SELECT r.id, r.reviewer_name, r.platform, r.rating, r.review_text, r.response_status, r.sentiment, r.review_date
+      FROM reviews r
+      JOIN businesses b ON r.business_id = b.id
+      WHERE b.user_id = $1
+      ORDER BY r.created_at DESC
+    `, [req.userId]);
     const parser = new Parser({ fields: ['id', 'reviewer_name', 'platform', 'rating', 'review_text', 'response_status', 'sentiment', 'review_date'] });
     const csv = parser.parse(result.rows);
     res.setHeader('Content-Type', 'text/csv');
@@ -263,7 +287,12 @@ const exportCSV = async (req, res) => {
 
 const exportPDF = async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM reviews ORDER BY created_at DESC');
+    const result = await pool.query(`
+      SELECT r.* FROM reviews r
+      JOIN businesses b ON r.business_id = b.id
+      WHERE b.user_id = $1
+      ORDER BY r.created_at DESC
+    `, [req.userId]);
     generatePDF('Reviews', [
       { key: 'id', label: 'ID' },
       { key: 'reviewer_name', label: 'Reviewer' },
@@ -280,7 +309,10 @@ const exportPDF = async (req, res) => {
 const bulkDelete = async (req, res) => {
   try {
     const { ids } = req.body;
-    const result = await pool.query('DELETE FROM reviews WHERE id = ANY($1) RETURNING id', [ids]);
+    const result = await pool.query(
+      'DELETE FROM reviews WHERE id = ANY($1) AND business_id IN (SELECT id FROM businesses WHERE user_id = $2) RETURNING id',
+      [ids, req.userId]
+    );
     res.json({ message: `${result.rowCount} items deleted`, deleted: result.rows.map(r => r.id) });
   } catch (error) {
     console.error('Bulk delete error:', error);
@@ -292,8 +324,8 @@ const bulkUpdate = async (req, res) => {
   try {
     const { ids, updates } = req.body;
     const setClauses = [];
-    const params = [ids];
-    let paramCount = 1;
+    const params = [ids, req.userId];
+    let paramCount = 2;
 
     Object.entries(updates).forEach(([key, value]) => {
       const allowed = ['response_status', 'sentiment'];
@@ -309,7 +341,7 @@ const bulkUpdate = async (req, res) => {
     setClauses.push('updated_at = CURRENT_TIMESTAMP');
 
     const result = await pool.query(
-      `UPDATE reviews SET ${setClauses.join(', ')} WHERE id = ANY($1) RETURNING *`,
+      `UPDATE reviews SET ${setClauses.join(', ')} WHERE id = ANY($1) AND business_id IN (SELECT id FROM businesses WHERE user_id = $2) RETURNING *`,
       params
     );
     res.json({ message: `${result.rowCount} items updated`, data: result.rows });

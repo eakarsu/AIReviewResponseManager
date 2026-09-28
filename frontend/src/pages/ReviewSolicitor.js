@@ -20,7 +20,9 @@ const ReviewSolicitor = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [filters, setFilters] = useState({ status: '', channel: '' });
+  const [businesses, setBusinesses] = useState([]);
   const [formData, setFormData] = useState({
+    business_id: '',
     customer_name: '',
     customer_email: '',
     customer_phone: '',
@@ -32,6 +34,12 @@ const ReviewSolicitor = () => {
   useEffect(() => {
     fetchSolicitations();
   }, [filters, search, sortBy, sortOrder]);
+
+  useEffect(() => {
+    api.get('/businesses', { params: { limit: 100 } })
+      .then((res) => setBusinesses(res.data.data || res.data || []))
+      .catch(() => toast.error('Failed to load businesses'));
+  }, []);
 
   const fetchSolicitations = async (page = 1) => {
     try {
@@ -60,7 +68,7 @@ const ReviewSolicitor = () => {
     try {
       await api.post('/solicitations', formData);
       setShowModal(false);
-      setFormData({ customer_name: '', customer_email: '', customer_phone: '', purchase_date: '', product_service: '' });
+      setFormData({ business_id: '', customer_name: '', customer_email: '', customer_phone: '', purchase_date: '', product_service: '' });
       fetchSolicitations();
       toast.success('Campaign created successfully');
     } catch (error) {
@@ -316,6 +324,19 @@ const ReviewSolicitor = () => {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>Create Review Request Campaign</h2>
             <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label>Business *</label>
+                <select
+                  value={formData.business_id}
+                  onChange={(e) => setFormData({ ...formData, business_id: e.target.value })}
+                  required
+                >
+                  <option value="">Select a business</option>
+                  {businesses.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
               <div className="form-group">
                 <label>Customer Name *</label>
                 <input

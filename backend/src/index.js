@@ -50,6 +50,7 @@ app.use('/api/templates', require('./routes/templateRoutes'));
 app.use('/api/businesses', require('./routes/businessRoutes'));
 app.use('/api/drafts', require('./routes/draftRoutes'));
 app.use('/api/solicitations', require('./routes/solicitorRoutes'));
+app.use('/api/settings', require('./routes/settingsRoutes'));
 app.use('/api/businesses', require('./routes/reputationRoutes'));
 app.use('/api/custom-views', require('./routes/customViews'));
 
@@ -85,11 +86,8 @@ app.use('/api/review-intelligence', reviewIntelligenceRoutes);
 app.use('/api/quality', aiRateLimiter, require('./routes/qualityRoutes'));
   app.use('/api/reviews', aiRateLimiter, require('./routes/semanticSearchRoutes'));
   app.use('/api/ai/generate-response', require('./routes/ai-generate-response'));
-  app.use('/api/gap-no-sentimentanalysis-classify-sentiment-urge', require('./routes/gap-no-sentimentanalysis-classify-sentiment-urge'));
-  app.use('/api/gap-no-competitorsentiment-ai', require('./routes/gap-no-competitorsentiment-ai'));
   app.use('/api/gap-no-review-aggregation-from-google-yelp-tripa', require('./routes/gap-no-review-aggregation-from-google-yelp-tripa'));
   app.use('/api/gap-no-publishing-to-multiple-platforms', require('./routes/gap-no-publishing-to-multiple-platforms'));
-  app.use('/api/gap-no-notifications-for-new-reviews', require('./routes/gap-no-notifications-for-new-reviews'));
   app.use('/api/ai', aiRateLimiter, require('./routes/aiCollabRoutes'));
 }
 

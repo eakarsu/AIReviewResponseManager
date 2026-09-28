@@ -62,6 +62,7 @@ const DraftDetail = () => {
       fetchDraft();
     } catch (error) {
       console.error('Error sending draft:', error);
+      alert(error.response?.data?.error || 'Failed to send draft.');
     }
   };
 

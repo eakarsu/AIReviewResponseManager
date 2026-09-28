@@ -37,7 +37,7 @@ const Login = () => {
         <div className="login-header">
           <div className="login-logo">🤖</div>
           <h1>AI Review Manager</h1>
-          <p>Auto-draft replies to Google & Yelp reviews</p>
+          <p>Draft replies to customer reviews with AI</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
@@ -100,7 +100,7 @@ const Login = () => {
             <span className="feature-icon">⭐</span>
             <div>
               <h3>Review Management</h3>
-              <p>Manage Google and Yelp reviews in one place</p>
+              <p>Organize the reviews you add or import</p>
             </div>
           </div>
           <div className="feature-item">

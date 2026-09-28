@@ -102,7 +102,7 @@ const Drafts = () => {
       toast.success('Draft sent successfully');
     } catch (error) {
       console.error('Error sending draft:', error);
-      toast.error('Failed to send draft');
+      toast.error(error.response?.data?.error || 'Failed to send draft');
     }
   };
 

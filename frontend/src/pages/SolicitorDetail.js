@@ -47,7 +47,7 @@ const SolicitorDetail = () => {
       setSolicitation(response.data);
     } catch (error) {
       console.error('Error sending:', error);
-      alert('Failed to send solicitation. Please try again.');
+      alert(error.response?.data?.error || 'Failed to send solicitation. Please try again.');
     } finally {
       setSending(false);
     }

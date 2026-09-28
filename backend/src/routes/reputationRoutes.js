@@ -13,7 +13,7 @@ router.get('/:id/reputation-score', authMiddleware, aiRateLimiter, async (req, r
   try {
     const { id } = req.params;
 
-    const businessRes = await pool.query('SELECT * FROM businesses WHERE id = $1', [id]);
+    const businessRes = await pool.query('SELECT * FROM businesses WHERE id = $1 AND user_id = $2', [id, req.userId]);
     if (businessRes.rows.length === 0) {
       return res.status(404).json({ error: 'Business not found' });
     }
@@ -99,22 +99,10 @@ router.post('/:businessId/auto-respond-config', authMiddleware, async (req, res)
     const { businessId } = req.params;
     const { enabled, min_rating, max_rating, tone, signature, respond_to_platforms } = req.body;
 
-    // Ensure the config table exists
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS auto_respond_configs (
-        id SERIAL PRIMARY KEY,
-        business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
-        enabled BOOLEAN DEFAULT false,
-        min_rating INTEGER DEFAULT 1,
-        max_rating INTEGER DEFAULT 5,
-        tone VARCHAR(50) DEFAULT 'professional',
-        signature TEXT,
-        respond_to_platforms TEXT[],
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(business_id)
-      )
-    `);
+    const ownedBusiness = await pool.query('SELECT id FROM businesses WHERE id = $1 AND user_id = $2', [businessId, req.userId]);
+    if (ownedBusiness.rows.length === 0) {
+      return res.status(404).json({ error: 'Business not found' });
+    }
 
     const result = await pool.query(`
       INSERT INTO auto_respond_configs (business_id, enabled, min_rating, max_rating, tone, signature, respond_to_platforms)
@@ -144,21 +132,10 @@ router.get('/:businessId/auto-respond-config', authMiddleware, async (req, res) 
   try {
     const { businessId } = req.params;
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS auto_respond_configs (
-        id SERIAL PRIMARY KEY,
-        business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
-        enabled BOOLEAN DEFAULT false,
-        min_rating INTEGER DEFAULT 1,
-        max_rating INTEGER DEFAULT 5,
-        tone VARCHAR(50) DEFAULT 'professional',
-        signature TEXT,
-        respond_to_platforms TEXT[],
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(business_id)
-      )
-    `);
+    const ownedBusiness = await pool.query('SELECT id FROM businesses WHERE id = $1 AND user_id = $2', [businessId, req.userId]);
+    if (ownedBusiness.rows.length === 0) {
+      return res.status(404).json({ error: 'Business not found' });
+    }
 
     const result = await pool.query(
       'SELECT * FROM auto_respond_configs WHERE business_id = $1',

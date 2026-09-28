@@ -61,7 +61,7 @@ const ReviewDetail = () => {
       fetchReview();
     } catch (error) {
       console.error('Error sending response:', error);
-      alert('Failed to send response.');
+      alert(error.response?.data?.error || 'Failed to send response.');
     } finally {
       setSending(false);
     }

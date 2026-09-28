@@ -8,9 +8,9 @@ const getAllDrafts = async (req, res) => {
     const { review_id, is_approved, is_sent, search, sort_by, sort_order } = req.query;
     const { page, limit, offset } = parsePagination(req.query);
 
-    let whereClause = ' WHERE 1=1';
-    const params = [];
-    let paramCount = 0;
+    let whereClause = ' WHERE b.user_id = $1';
+    const params = [req.userId];
+    let paramCount = 1;
 
     if (review_id) {
       paramCount++;
@@ -39,7 +39,7 @@ const getAllDrafts = async (req, res) => {
     const orderClause = buildSortClause(sort_by, sort_order, ['created_at']);
 
     const countResult = await pool.query(
-      `SELECT COUNT(*) FROM response_drafts d JOIN reviews r ON d.review_id = r.id${whereClause}`,
+      `SELECT COUNT(*) FROM response_drafts d JOIN reviews r ON d.review_id = r.id JOIN businesses b ON r.business_id = b.id${whereClause}`,
       params
     );
     const total = parseInt(countResult.rows[0].count);
@@ -53,6 +53,7 @@ const getAllDrafts = async (req, res) => {
       `SELECT d.*, r.reviewer_name, r.review_text, r.rating, r.platform
        FROM response_drafts d
        JOIN reviews r ON d.review_id = r.id
+       JOIN businesses b ON r.business_id = b.id
        ${whereClause}
        ORDER BY d.${orderClause}
        LIMIT $${paramCount - 1} OFFSET $${paramCount}`,
@@ -74,8 +75,9 @@ const getDraftById = async (req, res) => {
       SELECT d.*, r.reviewer_name, r.review_text, r.rating, r.platform, r.business_id
       FROM response_drafts d
       JOIN reviews r ON d.review_id = r.id
-      WHERE d.id = $1
-    `, [id]);
+      JOIN businesses b ON r.business_id = b.id
+      WHERE d.id = $1 AND b.user_id = $2
+    `, [id, req.userId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Draft not found' });
@@ -94,6 +96,16 @@ const createDraft = async (req, res) => {
 
     if (!review_id || !draft_text) {
       return res.status(400).json({ error: 'Review ID and draft text are required' });
+    }
+
+    const ownedReview = await pool.query(
+      `SELECT r.id FROM reviews r
+       JOIN businesses b ON r.business_id = b.id
+       WHERE r.id = $1 AND b.user_id = $2`,
+      [review_id, req.userId]
+    );
+    if (ownedReview.rows.length === 0) {
+      return res.status(404).json({ error: 'Review not found' });
     }
 
     const result = await pool.query(`
@@ -119,27 +131,25 @@ const updateDraft = async (req, res) => {
     const { id } = req.params;
     const { draft_text, tone, is_approved, is_sent } = req.body;
 
+    if (is_sent !== undefined) {
+      return res.status(400).json({ error: 'is_sent is set by delivery, not by direct update' });
+    }
+
     const result = await pool.query(`
       UPDATE response_drafts
       SET draft_text = COALESCE($1, draft_text),
           tone = COALESCE($2, tone),
           is_approved = COALESCE($3, is_approved),
-          is_sent = COALESCE($4, is_sent),
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = $5
+      WHERE id = $4
+        AND review_id IN (
+          SELECT r.id FROM reviews r JOIN businesses b ON r.business_id = b.id WHERE b.user_id = $5
+        )
       RETURNING *
-    `, [draft_text, tone, is_approved, is_sent, id]);
+    `, [draft_text, tone, is_approved, id, req.userId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Draft not found' });
-    }
-
-    // If draft is sent, update review status
-    if (is_sent) {
-      const draft = result.rows[0];
-      await pool.query(`
-        UPDATE reviews SET response_status = 'responded', updated_at = CURRENT_TIMESTAMP WHERE id = $1
-      `, [draft.review_id]);
     }
 
     res.json(result.rows[0]);
@@ -153,7 +163,15 @@ const deleteDraft = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await pool.query('DELETE FROM response_drafts WHERE id = $1 RETURNING *', [id]);
+    const result = await pool.query(
+      `DELETE FROM response_drafts
+       WHERE id = $1
+         AND review_id IN (
+           SELECT r.id FROM reviews r JOIN businesses b ON r.business_id = b.id WHERE b.user_id = $2
+         )
+       RETURNING *`,
+      [id, req.userId]
+    );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Draft not found' });
@@ -174,8 +192,11 @@ const approveDraft = async (req, res) => {
       UPDATE response_drafts
       SET is_approved = true, updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
+        AND review_id IN (
+          SELECT r.id FROM reviews r JOIN businesses b ON r.business_id = b.id WHERE b.user_id = $2
+        )
       RETURNING *
-    `, [id]);
+    `, [id, req.userId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Draft not found' });
@@ -192,24 +213,25 @@ const sendDraft = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await pool.query(`
-      UPDATE response_drafts
-      SET is_sent = true, is_approved = true, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-      RETURNING *
-    `, [id]);
-
-    if (result.rows.length === 0) {
+    // Publishing responses back to Google/Yelp requires a configured platform
+    // integration. Until one exists this must fail loudly instead of marking
+    // the draft as sent.
+    const owned = await pool.query(
+      `SELECT d.id FROM response_drafts d
+       JOIN reviews r ON d.review_id = r.id
+       JOIN businesses b ON r.business_id = b.id
+       WHERE d.id = $1 AND b.user_id = $2`,
+      [id, req.userId]
+    );
+    if (owned.rows.length === 0) {
       return res.status(404).json({ error: 'Draft not found' });
     }
 
-    // Update review status
-    const draft = result.rows[0];
-    await pool.query(`
-      UPDATE reviews SET response_status = 'responded', updated_at = CURRENT_TIMESTAMP WHERE id = $1
-    `, [draft.review_id]);
-
-    res.json({ message: 'Response sent successfully', draft: result.rows[0] });
+    return res.status(501).json({
+      error: 'Publishing responses to review platforms is not configured',
+      code: 'platform_delivery_unavailable',
+      detail: 'No Google/Yelp publishing integration is configured, so this draft was not sent.',
+    });
   } catch (error) {
     console.error('Send draft error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -218,7 +240,14 @@ const sendDraft = async (req, res) => {
 
 const exportCSV = async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, draft_text, tone, is_approved, is_sent, created_at FROM response_drafts ORDER BY created_at DESC');
+    const result = await pool.query(`
+      SELECT d.id, d.draft_text, d.tone, d.is_approved, d.is_sent, d.created_at
+      FROM response_drafts d
+      JOIN reviews r ON d.review_id = r.id
+      JOIN businesses b ON r.business_id = b.id
+      WHERE b.user_id = $1
+      ORDER BY d.created_at DESC
+    `, [req.userId]);
     const parser = new Parser({ fields: ['id', 'draft_text', 'tone', 'is_approved', 'is_sent', 'created_at'] });
     const csv = parser.parse(result.rows);
     res.setHeader('Content-Type', 'text/csv');
@@ -236,8 +265,10 @@ const exportPDF = async (req, res) => {
       SELECT d.*, r.reviewer_name, r.platform
       FROM response_drafts d
       JOIN reviews r ON d.review_id = r.id
+      JOIN businesses b ON r.business_id = b.id
+      WHERE b.user_id = $1
       ORDER BY d.created_at DESC
-    `);
+    `, [req.userId]);
     generatePDF('Response Drafts', [
       { key: 'id', label: 'ID' },
       { key: 'reviewer_name', label: 'Reviewer' },
@@ -255,7 +286,15 @@ const exportPDF = async (req, res) => {
 const bulkDelete = async (req, res) => {
   try {
     const { ids } = req.body;
-    const result = await pool.query('DELETE FROM response_drafts WHERE id = ANY($1) RETURNING id', [ids]);
+    const result = await pool.query(
+      `DELETE FROM response_drafts
+       WHERE id = ANY($1)
+         AND review_id IN (
+           SELECT r.id FROM reviews r JOIN businesses b ON r.business_id = b.id WHERE b.user_id = $2
+         )
+       RETURNING id`,
+      [ids, req.userId]
+    );
     res.json({ message: `${result.rowCount} items deleted`, deleted: result.rows.map(r => r.id) });
   } catch (error) {
     console.error('Bulk delete error:', error);
@@ -267,8 +306,8 @@ const bulkUpdate = async (req, res) => {
   try {
     const { ids, updates } = req.body;
     const setClauses = [];
-    const params = [ids];
-    let paramCount = 1;
+    const params = [ids, req.userId];
+    let paramCount = 2;
 
     Object.entries(updates).forEach(([key, value]) => {
       const allowed = ['is_approved', 'tone'];
@@ -284,7 +323,12 @@ const bulkUpdate = async (req, res) => {
     setClauses.push('updated_at = CURRENT_TIMESTAMP');
 
     const result = await pool.query(
-      `UPDATE response_drafts SET ${setClauses.join(', ')} WHERE id = ANY($1) RETURNING *`,
+      `UPDATE response_drafts SET ${setClauses.join(', ')}
+       WHERE id = ANY($1)
+         AND review_id IN (
+           SELECT r.id FROM reviews r JOIN businesses b ON r.business_id = b.id WHERE b.user_id = $2
+         )
+       RETURNING *`,
       params
     );
     res.json({ message: `${result.rowCount} items updated`, data: result.rows });

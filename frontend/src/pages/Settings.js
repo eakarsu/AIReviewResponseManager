@@ -32,9 +32,18 @@ const Settings = () => {
   const toast = useToast();
 
   useEffect(() => {
-    // In a real app, you would fetch settings from the API
-    // For now, we'll use default settings
-    setLoading(false);
+    let cancelled = false;
+    api.get('/settings')
+      .then((res) => {
+        if (!cancelled) setSettings((current) => ({ ...current, ...(res.data.settings || {}) }));
+      })
+      .catch((err) => {
+        if (!cancelled) setMessage(err.response?.data?.error || 'Error loading settings');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
   }, []);
 
   const handleChange = (key, value) => {
@@ -44,12 +53,11 @@ const Settings = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // In a real app, you would save settings to the API
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await api.put('/settings', { settings });
       setMessage('Settings saved successfully!');
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
-      setMessage('Error saving settings');
+      setMessage(error.response?.data?.error || 'Error saving settings');
     } finally {
       setSaving(false);
     }
