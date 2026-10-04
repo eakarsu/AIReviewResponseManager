@@ -18,6 +18,7 @@ import Drafts from './pages/Drafts';
 import DraftDetail from './pages/DraftDetail';
 import Settings from './pages/Settings';
 import Layout from './components/Layout';
+import GovernedReviewResponses from './pages/GovernedReviewResponses';
 // AI Feature Pages
 import FakeReviewDetector from './pages/FakeReviewDetector';
 import FakeReviewDetail from './pages/FakeReviewDetail';
@@ -92,6 +93,7 @@ function App() {
         <ToastProvider>
           <Router>
             <Routes>
+        <Route path="/governed-review-responses" element={<ProtectedRoute><GovernedReviewResponses /></ProtectedRoute>} />
         <Route path="/insights/timeline" element={<ProtectedRoute><TimelineView /></ProtectedRoute>} />
         <Route path="/codex/custom-viz" element={<ProtectedRoute><CodexCustomVizFeature /></ProtectedRoute>} />
         <Route path="/codex/operations" element={<ProtectedRoute><CodexOperationsFeature /></ProtectedRoute>} />

@@ -22,9 +22,13 @@ const db = {
   },
 };
 
-module.exports = createGovernedRouter({
+const router = createGovernedRouter({
   express,
   workflow: createWorkflow(require('./config')),
   auth,
   db,
 });
+
+router.use(require('./groundedDraftRouter').createGroundedDraftRouter({ express, db }));
+
+module.exports = router;

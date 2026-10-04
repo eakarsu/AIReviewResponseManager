@@ -11,7 +11,7 @@ const ResponseTemplatePDF = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const url = `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/custom-views/template-library/pdf${category ? `?category=${encodeURIComponent(category)}` : ''}`;
+      const url = `${process.env.REACT_APP_API_URL || '/api'}/custom-views/template-library/pdf${category ? `?category=${encodeURIComponent(category)}` : ''}`;
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });

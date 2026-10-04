@@ -12,6 +12,7 @@ const Layout = ({ children }) => {
   const menuItems = [
     { path: '/', label: 'Dashboard', icon: '📊' },
     { path: '/reviews', label: 'Reviews', icon: '⭐' },
+    { path: '/governed-review-responses', label: 'Governed Responses', icon: '🛡️' },
     { path: '/drafts', label: 'Drafts', icon: '📝' },
     { path: '/templates', label: 'Templates', icon: '📋' },
     { path: '/businesses', label: 'Businesses', icon: '🏪' },

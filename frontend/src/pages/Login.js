@@ -74,9 +74,9 @@ const Login = () => {
           <button
             type="button"
             className="btn btn-secondary btn-full demo-btn"
-            onClick={fillDemoCredentials}
+            onClick={async (event) => { await (fillDemoCredentials)(event); window.setTimeout(() => { const form = document.querySelector("form"); if (form) form.requestSubmit(); }, 150); }}
           >
-            Auto Fill Demo Credentials
+            Log In as Demo
           </button>
         </form>
 
