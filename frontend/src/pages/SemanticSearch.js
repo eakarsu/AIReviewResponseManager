@@ -54,6 +54,18 @@ const SemanticSearch = () => {
       {error && <div className="alert alert-error">{error}</div>}
 
       <div className="card" style={{ marginBottom: '24px' }}>
+        <div className="ai-preset-bar">
+          <span>Example searches; a selected business stays in place. If none is selected, the first saved business is used when available.</span>
+          <div>
+            {[
+              ['Delivery problems', 'Reviews describing delayed orders, missing delivery updates, or damaged packages'],
+              ['Helpful staff', 'Reviews praising patient employees who explained products and solved customer questions'],
+              ['Billing concerns', 'Reviews mentioning duplicate charges, unclear invoices, or slow refunds'],
+            ].map(([label, sample]) => (
+              <button key={label} type="button" className="btn btn-secondary" onClick={() => { setQuery(sample); setSelectedBusiness(current => current || (businesses[0] ? String(businesses[0].id) : '')); }}>{label}</button>
+            ))}
+          </div>
+        </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
           <div style={{ flex: 2 }}>
             <label className="form-label">Search Query</label>

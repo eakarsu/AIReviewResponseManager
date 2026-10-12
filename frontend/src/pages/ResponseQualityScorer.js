@@ -1,3 +1,5 @@
+import FormattedAIReport from '../components/FormattedAIReport';
+import FullFieldPresets from '../components/FullFieldPresets';
 import React, { useState } from 'react';
 import api from '../services/api';
 
@@ -30,12 +32,6 @@ const ResponseQualityScorer = () => {
     }
   };
 
-  const dimColor = (s) => {
-    if (s >= 8) return '#22c55e';
-    if (s >= 5) return '#eab308';
-    return '#ef4444';
-  };
-
   return (
     <div className="page-container">
       <div className="page-header">
@@ -46,6 +42,16 @@ const ResponseQualityScorer = () => {
       {error && <div className="alert alert-error">{error}</div>}
 
       <form className="card" onSubmit={handleSubmit} style={{ marginBottom: 24 }}>
+        <FullFieldPresets
+          value={{ reviewText, responseText, brandVoice }}
+          presets={[
+            { label: 'Scenario', values: { reviewText: 'My package arrived late and I could not reach support.', responseText: 'I am sorry about the delay. Please contact us with your order details so we can investigate and follow up.', brandVoice: 'empathetic, clear, concise' } },
+            { label: 'Data sample', values: { reviewText: 'The staff were friendly and helped me find exactly what I needed.', responseText: 'Thank you for your kind words. We are glad the team could help and look forward to welcoming you again.', brandVoice: 'warm, appreciative, personal' } },
+            { label: 'Executive review', values: { reviewText: 'I was billed twice and still have no refund.', responseText: 'We are sorry for the billing issue. Please reach us privately with your receipt so our billing team can review it promptly.', brandVoice: 'accountable, professional, reassuring' } },
+          ]}
+          disabled={loading}
+          onChange={(next) => { setReviewText(next.reviewText); setResponseText(next.responseText); setBrandVoice(next.brandVoice); setError(''); }}
+        />
         <div className="form-group" style={{ marginBottom: 12 }}>
           <label className="form-label">Original Review</label>
           <textarea
@@ -80,55 +86,8 @@ const ResponseQualityScorer = () => {
         </button>
       </form>
 
-      {result && (
-        <div className="card">
-          <h2 style={{ marginTop: 0 }}>Quality Score</h2>
-          {result.overallScore != null && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
-              <div style={{ width: 80, height: 80, borderRadius: '50%', background: dimColor(result.overallScore) + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `4px solid ${dimColor(result.overallScore)}` }}>
-                <span style={{ fontSize: 22, fontWeight: 700, color: dimColor(result.overallScore) }}>{result.overallScore}</span>
-              </div>
-              <div>
-                <div style={{ fontSize: 14, color: '#6b7280' }}>Overall Quality</div>
-                {result.verdict && <div style={{ fontSize: 18, fontWeight: 600 }}>{result.verdict}</div>}
-              </div>
-            </div>
-          )}
-          {result.summary && <p style={{ color: '#374151', lineHeight: 1.6 }}>{result.summary}</p>}
+      {result !== null && <FormattedAIReport response={result} title='Quality score' />}
 
-          {result.dimensions && typeof result.dimensions === 'object' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginTop: 12 }}>
-              {Object.entries(result.dimensions).map(([k, v]) => {
-                const score = typeof v === 'object' ? v.score : v;
-                const note = typeof v === 'object' ? (v.notes || v.feedback) : null;
-                return (
-                  <div key={k} style={{ padding: 12, border: '1px solid #e5e7eb', borderRadius: 8 }}>
-                    <div style={{ fontSize: 12, color: '#6b7280', textTransform: 'capitalize' }}>{k.replace(/_/g, ' ')}</div>
-                    <div style={{ fontSize: 22, fontWeight: 700, color: dimColor(Number(score) || 0) }}>{score}</div>
-                    {note && <div style={{ fontSize: 12, color: '#374151', marginTop: 4 }}>{note}</div>}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {Array.isArray(result.improvements) && result.improvements.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <h3>Improvements</h3>
-              <ul style={{ paddingLeft: 20 }}>
-                {result.improvements.map((s, i) => <li key={i}>{typeof s === 'string' ? s : JSON.stringify(s)}</li>)}
-              </ul>
-            </div>
-          )}
-
-          {result.improved_response && (
-            <div style={{ marginTop: 16 }}>
-              <h3>Suggested Improved Response</h3>
-              <pre style={{ background: '#f9fafb', padding: 12, borderRadius: 8, whiteSpace: 'pre-wrap' }}>{result.improved_response}</pre>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };

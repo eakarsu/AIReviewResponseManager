@@ -1,3 +1,4 @@
+import FullFieldPresets from '../components/FullFieldPresets';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
@@ -289,6 +290,15 @@ const TrendAnalyzer = () => {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>Create Trend Analysis</h2>
             <form onSubmit={handleSubmit}>
+              <FullFieldPresets
+                value={formData}
+                presets={[
+                  { label: "Quarterly retail", values: {"analysis_name": "Q3 retail service trends", "business_name": "Downtown retail shop", "date_range_start": "2026-07-01", "date_range_end": "2026-09-30"} },
+                  { label: "Summer dining", values: {"analysis_name": "Summer dining feedback", "business_name": "Neighborhood cafe", "date_range_start": "2026-06-01", "date_range_end": "2026-08-31"} },
+                  { label: "September support", values: {"analysis_name": "September support experience", "business_name": "Local service business", "date_range_start": "2026-09-01", "date_range_end": "2026-09-30"} }
+                ]}
+                onChange={(next) => setFormData(next)}
+              />
               <div className="form-group">
                 <label>Analysis Name *</label>
                 <input

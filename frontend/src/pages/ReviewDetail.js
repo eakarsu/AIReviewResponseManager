@@ -165,6 +165,11 @@ const ReviewDetail = () => {
       {/* AI Response Generator */}
       <div className="card detail-section">
         <h3>Generate AI Response</h3>
+        <div className="ai-preset-bar"><span>Choose a tone for this saved review</span><div>{[
+          { label: 'Careful apology', tone: 'apologetic' },
+          { label: 'Warm thanks', tone: 'grateful' },
+          { label: 'Friendly follow-up', tone: 'friendly' },
+        ].map(sample => <button key={sample.label} type="button" className="btn btn-secondary" onClick={() => setSelectedTone(sample.tone)}>{sample.label}</button>)}</div></div>
         <div className="generator-controls">
           <div className="tone-selector">
             <label>Response Tone:</label>

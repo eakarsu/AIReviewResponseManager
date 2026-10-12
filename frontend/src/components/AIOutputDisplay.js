@@ -2,7 +2,7 @@ import React from 'react';
 import './AIOutputDisplay.css';
 
 const AIOutputDisplay = ({ title, data, type = 'default' }) => {
-  if (!data) return null;
+  if (data === null || data === undefined) return null;
 
   const renderValue = (value, key) => {
     if (value === null || value === undefined) {
@@ -35,7 +35,7 @@ const AIOutputDisplay = ({ title, data, type = 'default' }) => {
       return (
         <ul className="ai-list">
           {value.map((item, idx) => (
-            <li key={idx} className="ai-list-item">{typeof item === 'object' ? JSON.stringify(item) : item}</li>
+            <li key={idx} className="ai-list-item">{renderValue(item)}</li>
           ))}
         </ul>
       );
@@ -52,6 +52,11 @@ const AIOutputDisplay = ({ title, data, type = 'default' }) => {
           ))}
         </div>
       );
+    }
+
+    // Saved JSON columns may arrive as strings depending on the API route.
+    if (typeof value === 'string' && /^[\[{]/.test(value.trim())) {
+      try { return renderValue(JSON.parse(value), key); } catch (_) { /* Keep ordinary text. */ }
     }
 
     // String value
@@ -194,8 +199,8 @@ const AIOutputDisplay = ({ title, data, type = 'default' }) => {
         </div>
       )}
       <div className="ai-output-content">
-        {typeof data === 'string' ? (
-          <p className="ai-output-text">{data}</p>
+        {data === null || typeof data !== 'object' || Array.isArray(data) ? (
+          renderValue(data)
         ) : (
           Object.entries(data).map(([key, value]) => {
             // Skip internal fields

@@ -1,3 +1,4 @@
+import FullFieldPresets from '../components/FullFieldPresets';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
@@ -324,6 +325,16 @@ const ReviewSolicitor = () => {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>Create Review Request Campaign</h2>
             <form onSubmit={handleSubmit}>
+              <FullFieldPresets
+                value={formData}
+                presets={[
+                  { label: "Cafe visit", values: {"customer_name": "Jordan Ellis", "customer_email": "jordan.ellis@example.com", "customer_phone": "555-010-0101", "purchase_date": "2026-10-09", "product_service": "Lunch service"} },
+                  { label: "Retail purchase", values: {"customer_name": "Taylor Chen", "customer_email": "taylor.chen@example.com", "customer_phone": "555-010-0102", "purchase_date": "2026-10-08", "product_service": "Wireless headphones"} },
+                  { label: "Service appointment", values: {"customer_name": "Casey Morgan", "customer_email": "casey.morgan@example.com", "customer_phone": "555-010-0103", "purchase_date": "2026-10-07", "product_service": "Repair appointment"} }
+                ]}
+                onChange={(next) => setFormData({ ...formData, ...next, business_id: formData.business_id || (businesses[0] ? String(businesses[0].id) : '') })}
+              />
+              <p>{businesses.length ? 'Your selected business is preserved; otherwise the first saved business is selected.' : 'Add or load a real business before creating a campaign.'}</p>
               <div className="form-group">
                 <label>Business *</label>
                 <select

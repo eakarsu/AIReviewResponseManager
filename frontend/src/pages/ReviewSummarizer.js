@@ -1,3 +1,4 @@
+import FullFieldPresets from '../components/FullFieldPresets';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
@@ -273,6 +274,15 @@ const ReviewSummarizer = () => {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>Add Product for Summary</h2>
             <form onSubmit={handleSubmit}>
+              <FullFieldPresets
+                value={formData}
+                presets={[
+                  { label: "Headphones", values: {"product_name": "Studio wireless headphones", "product_category": "Electronics", "total_reviews": 128, "average_rating": 4.2} },
+                  { label: "Coffee maker", values: {"product_name": "Compact espresso machine", "product_category": "Kitchen appliances", "total_reviews": 74, "average_rating": 3.8} },
+                  { label: "Running shoes", values: {"product_name": "Trail running shoes", "product_category": "Footwear", "total_reviews": 205, "average_rating": 4.5} }
+                ]}
+                onChange={(next) => setFormData(next)}
+              />
               <div className="form-group">
                 <label>Product Name *</label>
                 <input

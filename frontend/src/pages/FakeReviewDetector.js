@@ -1,3 +1,4 @@
+import FullFieldPresets from '../components/FullFieldPresets';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
@@ -334,6 +335,15 @@ const FakeReviewDetector = () => {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>Add Review for Detection</h2>
             <form onSubmit={handleSubmit}>
+              <FullFieldPresets
+                value={formData}
+                presets={[
+                  { label: "Unusual praise", values: {"review_text": "Amazing product! I bought five this week and every one was perfect.", "reviewer_name": "Customer A", "platform": "amazon"} },
+                  { label: "Missing details", values: {"review_text": "Best restaurant ever, no complaints at all.", "reviewer_name": "Guest B", "platform": "yelp"} },
+                  { label: "Specific complaint", values: {"review_text": "My order arrived late on Tuesday and the packaging was damaged.", "reviewer_name": "Buyer C", "platform": "ebay"} }
+                ]}
+                onChange={(next) => setFormData(next)}
+              />
               <div className="form-group">
                 <label>Review Text *</label>
                 <textarea

@@ -1,3 +1,4 @@
+import FormattedAIReport from "../components/FormattedAIReport";
 import React, { useState } from 'react';
 import api from '../services/api';
 
@@ -11,6 +12,12 @@ const TranslateResponse = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
+  const samples = [
+    { label: 'Apology', text: 'We are sorry your order arrived late. Please contact our team so we can review the delivery and make this right.', languages: ['Spanish', 'French'], custom: '', tone: 'warm and accountable' },
+    { label: 'Thank-you', text: 'Thank you for sharing your experience. We are glad our team made your visit comfortable and hope to see you again.', languages: ['German', 'Italian'], custom: '', tone: 'friendly and appreciative' },
+    { label: 'Follow-up', text: 'We understand the billing concern and would like to investigate it with you privately. Please contact our support team.', languages: ['Portuguese', 'Japanese'], custom: '', tone: 'professional and reassuring' },
+  ];
+  const applySample = (sample) => { setResponseText(sample.text); setLanguages(sample.languages); setCustomLang(sample.custom); setTone(sample.tone); setError(''); };
 
   const toggleLang = (l) => {
     setLanguages(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l]);
@@ -59,6 +66,7 @@ const TranslateResponse = () => {
       {error && <div className="alert alert-error">{error}</div>}
 
       <form className="card" onSubmit={handleSubmit} style={{ marginBottom: 24 }}>
+        <div className="ai-preset-bar"><span>Sample translations</span><div>{samples.map(sample => <button key={sample.label} type="button" className="btn btn-secondary" onClick={() => applySample(sample)}>{sample.label}</button>)}</div></div>
         <div className="form-group" style={{ marginBottom: 12 }}>
           <label className="form-label">Response Text</label>
           <textarea
@@ -140,7 +148,7 @@ const TranslateResponse = () => {
 
       {result && !translationsList && (
         <div className="card">
-          <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(result, null, 2)}</pre>
+          <FormattedAIReport response={result} />
         </div>
       )}
     </div>

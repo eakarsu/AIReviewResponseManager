@@ -27,8 +27,15 @@ const Login = () => {
   };
 
   const fillDemoCredentials = () => {
-    setEmail(process.env.REACT_APP_DEMO_EMAIL || '');
-    setPassword(process.env.REACT_APP_DEMO_PASSWORD || '');
+    const demoEmail = process.env.REACT_APP_DEMO_EMAIL;
+    const demoPassword = process.env.REACT_APP_DEMO_PASSWORD;
+    if (!demoEmail || !demoPassword) {
+      setError('Demo credentials are not configured for this app.');
+      return;
+    }
+    setEmail(demoEmail);
+    setPassword(demoPassword);
+    setError('');
   };
 
   return (
@@ -74,9 +81,9 @@ const Login = () => {
           <button
             type="button"
             className="btn btn-secondary btn-full demo-btn"
-            onClick={async (event) => { await (fillDemoCredentials)(event); window.setTimeout(() => { const form = document.querySelector("form"); if (form) form.requestSubmit(); }, 150); }}
+            onClick={fillDemoCredentials}
           >
-            Log In as Demo
+            Fill Demo Credentials
           </button>
         </form>
 
@@ -84,13 +91,6 @@ const Login = () => {
           <a href="/forgot-password" className="login-link">Forgot your password?</a>
         </div>
 
-        <div className="login-footer">
-          <p className="demo-info">
-            <strong>Demo Account:</strong><br />
-            Email: admin@reviewmanager.com<br />
-            Password: admin123
-          </p>
-        </div>
       </div>
 
       <div className="login-features">

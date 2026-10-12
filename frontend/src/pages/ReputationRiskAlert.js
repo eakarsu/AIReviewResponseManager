@@ -1,3 +1,4 @@
+import FormattedAIReport from '../components/FormattedAIReport';
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 
@@ -7,6 +8,7 @@ const ReputationRiskAlert = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
+  const selectSampleBusiness = (index) => { if (businesses[index]) { setBusinessId(String(businesses[index].id)); setError(''); } };
 
   useEffect(() => {
     api.get('/businesses')
@@ -49,6 +51,7 @@ const ReputationRiskAlert = () => {
       {error && <div className="alert alert-error">{error}</div>}
 
       <div className="card" style={{ marginBottom: 24 }}>
+        <div className="ai-preset-bar"><span>{businesses.length ? 'Choose an existing business to review' : 'Add or load a real business before analyzing risk'}</span><div>{businesses.slice(0, 3).map((business, index) => <button key={business.id} type="button" className="btn btn-secondary" onClick={() => selectSampleBusiness(index)}>{business.name}</button>)}</div></div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
           <div style={{ flex: 1 }}>
             <label className="form-label">Business</label>
@@ -67,61 +70,10 @@ const ReputationRiskAlert = () => {
         </div>
       </div>
 
-      {result && (
-        <div className="card">
-          {(result.riskLevel || result.risk_level) && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-              <span style={{
-                background: levelColor(result.riskLevel || result.risk_level) + '22',
-                color: levelColor(result.riskLevel || result.risk_level),
-                padding: '6px 12px',
-                borderRadius: 16,
-                fontWeight: 600,
-                fontSize: 14
-              }}>
-                {String(result.riskLevel || result.risk_level).toUpperCase()}
-              </span>
-              {result.score != null && <span style={{ color: '#6b7280' }}>Score: <strong>{result.score}</strong></span>}
-            </div>
-          )}
+      {result !== null && <FormattedAIReport response={result} title='Reputation risk alert' />}
 
-          {result.summary && <p style={{ color: '#374151', lineHeight: 1.6 }}>{result.summary}</p>}
-
-          {result.trajectory && (
-            <div style={{ marginTop: 12 }}>
-              <h3>Trajectory</h3>
-              <p style={{ color: '#374151' }}>{typeof result.trajectory === 'string' ? result.trajectory : JSON.stringify(result.trajectory)}</p>
-            </div>
-          )}
-
-          {Array.isArray(result.warning_signs) && result.warning_signs.length > 0 && (
-            <Section title="Warning Signs" items={result.warning_signs} color="#dc2626" />
-          )}
-          {Array.isArray(result.warningSigns) && result.warningSigns.length > 0 && (
-            <Section title="Warning Signs" items={result.warningSigns} color="#dc2626" />
-          )}
-          {Array.isArray(result.themes) && result.themes.length > 0 && (
-            <Section title="Recurring Themes" items={result.themes} color="#374151" />
-          )}
-          {Array.isArray(result.actions) && result.actions.length > 0 && (
-            <Section title="Recommended Actions" items={result.actions} color="#1d4ed8" />
-          )}
-          {Array.isArray(result.recommendations) && result.recommendations.length > 0 && (
-            <Section title="Recommendations" items={result.recommendations} color="#1d4ed8" />
-          )}
-        </div>
-      )}
     </div>
   );
 };
-
-const Section = ({ title, items, color }) => (
-  <div style={{ marginTop: 12 }}>
-    <h3>{title}</h3>
-    <ul style={{ paddingLeft: 20, color }}>
-      {items.map((it, i) => <li key={i}>{typeof it === 'string' ? it : JSON.stringify(it)}</li>)}
-    </ul>
-  </div>
-);
 
 export default ReputationRiskAlert;

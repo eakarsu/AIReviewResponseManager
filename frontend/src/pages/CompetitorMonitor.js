@@ -1,3 +1,4 @@
+import FullFieldPresets from '../components/FullFieldPresets';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
@@ -305,6 +306,15 @@ const CompetitorMonitor = () => {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>Add Competitor to Monitor</h2>
             <form onSubmit={handleSubmit}>
+              <FullFieldPresets
+                value={formData}
+                presets={[
+                  { label: "Local cafe", values: {"competitor_name": "Riverside Cafe", "competitor_platform": "google", "business_category": "Cafe"} },
+                  { label: "Regional restaurant", values: {"competitor_name": "Market Street Bistro", "competitor_platform": "yelp", "business_category": "Restaurant"} },
+                  { label: "Visitor attraction", values: {"competitor_name": "Harbor Walking Tours", "competitor_platform": "tripadvisor", "business_category": "Tour operator"} }
+                ]}
+                onChange={(next) => setFormData(next)}
+              />
               <div className="form-group">
                 <label>Competitor Name *</label>
                 <input

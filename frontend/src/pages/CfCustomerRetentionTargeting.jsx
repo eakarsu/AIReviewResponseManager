@@ -1,3 +1,4 @@
+import FormattedAIReport from "../components/FormattedAIReport";
 // // === Batch 07 Gaps & Frontend Mounts ===
 import React, { useState } from 'react';
 
@@ -8,18 +9,9 @@ export default function CfCustomerRetentionTargeting() {
   const [error, setError] = useState(null);
 
   const sampleRequests = [
-      {
-          "label": "Scenario",
-          "value": "Run Customer retention targeting for a realistic customer case.\nContext: a team needs a practical recommendation based on incomplete operating data.\nGoal: identify the best action, key risks, missing information, and expected business impact.\nReturn: summary, prioritized action plan, assumptions, and follow-up questions."
-      },
-      {
-          "label": "Data sample",
-          "value": "Analyze this Customer retention targeting data sample.\nInput records:\n- Record 1: urgent, customer impact high, owner unassigned\n- Record 2: medium priority, blocked by missing data\n- Record 3: recurring issue, automation opportunity\nReturn structured findings, anomalies, recommendations, and confidence."
-      },
-      {
-          "label": "Executive review",
-          "value": "Prepare an executive review for Customer retention targeting.\nAudience: business owner, operations lead, and implementation team.\nInclude impact, risk, estimated effort, decision points, and a concise next-step plan."
-      }
+    { label: "Late delivery", value: "Use Customer retention targeting for a neighborhood cafe with two recent Google reviews: 2 stars on Oct 3: \"My pickup order was 35 minutes late and nobody explained the delay.\" 4 stars on Oct 5: \"The staff apologized and fixed my order quickly.\" Identify customer impact, a practical response, and follow-up actions. State any missing data." },
+    { label: "Billing concern", value: "Use Customer retention targeting for a local service business. A Yelp customer rated 1 star after seeing two charges for one appointment; staff say one may be a pending authorization. Draft or analyze a careful reply that acknowledges the concern without claiming a refund was issued. Include what to verify privately and the next owner action." },
+    { label: "Weekly trend", value: "Use Customer retention targeting for a small retail shop. This week, three reviews mention long checkout lines (2, 3, and 2 stars), while two praise staff advice (5 stars each). Summarize the pattern, prioritize a realistic operational response, and distinguish observed facts from assumptions." }
   ];
 
   const applySampleRequest = (value) => {
@@ -83,9 +75,7 @@ export default function CfCustomerRetentionTargeting() {
         <div style={{ marginTop: 16, padding: 12, background: '#fee', color: '#900', borderRadius: 6 }}>{error}</div>
       )}
       {output && (
-        <pre style={{ marginTop: 16, padding: 12, background: '#f7f7f7', borderRadius: 6, overflow: 'auto', maxHeight: 480 }}>
-{JSON.stringify(output, null, 2)}
-        </pre>
+        <FormattedAIReport response={output} />
       )}
     </div>
   );

@@ -1,3 +1,4 @@
+import FullFieldPresets from '../components/FullFieldPresets';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
@@ -326,6 +327,15 @@ const ResponsePersonalizer = () => {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>Create Personalized Response</h2>
             <form onSubmit={handleSubmit}>
+              <FullFieldPresets
+                value={formData}
+                presets={[
+                  { label: "Delayed order", values: {"reviewer_name": "Morgan Lee", "original_review": "My order arrived two days late and I did not receive an update.", "review_sentiment": "negative"} },
+                  { label: "Helpful staff", values: {"reviewer_name": "Alex Rivera", "original_review": "The staff explained my options clearly and made pickup easy.", "review_sentiment": "positive"} },
+                  { label: "Mixed visit", values: {"reviewer_name": "Sam Patel", "original_review": "The product is good, but checkout took longer than expected.", "review_sentiment": "neutral"} }
+                ]}
+                onChange={(next) => setFormData(next)}
+              />
               <div className="form-group">
                 <label>Reviewer Name *</label>
                 <input

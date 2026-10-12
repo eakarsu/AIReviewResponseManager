@@ -1,3 +1,4 @@
+import FormattedAIReport from "../components/FormattedAIReport";
 import React, { useState } from 'react';
 import api from '../services/api';
 
@@ -10,6 +11,16 @@ const TeamAssignmentSuggester = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
+  const samples = [
+    { label: 'Delayed order', review: 'My order arrived two days late and nobody replied to my message. I need help before Friday.', rating: 2, platform: 'Google', hints: 'Prioritize an available support owner who can follow up within one business day.' },
+    { label: 'Great service', review: 'Maya helped us choose the right product and made pickup easy. Thank you!', rating: 5, platform: 'Yelp', hints: 'Assign to a customer care owner for a personal thank-you.' },
+    { label: 'Billing concern', review: 'I was charged twice for the same visit. Please explain how the refund will work.', rating: 1, platform: 'Tripadvisor', hints: 'Prioritize a billing specialist with capacity for a same-day response.' },
+  ];
+  const applySample = (sample) => {
+    setReviewText(sample.review); setRating(sample.rating); setPlatform(sample.platform);
+    // Preserve manually supplied real team member references.
+    setWorkloadHints(sample.hints); setError('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -52,6 +63,7 @@ const TeamAssignmentSuggester = () => {
       </div>
       {error && <div className="alert alert-error">{error}</div>}
       <form className="card" onSubmit={handleSubmit} style={{ marginBottom: 24 }}>
+        <div className="ai-preset-bar"><span>Sample reviews (team members load from your account)</span><div>{samples.map(sample => <button key={sample.label} type="button" className="btn btn-secondary" onClick={() => applySample(sample)}>{sample.label}</button>)}</div></div>
         <div className="form-group" style={{ marginBottom: 12 }}>
           <label className="form-label">Review Text</label>
           <textarea className="form-input" rows={5} value={reviewText} onChange={e => setReviewText(e.target.value)} placeholder="Paste the review here..." />
@@ -81,7 +93,7 @@ const TeamAssignmentSuggester = () => {
       {result && (
         <div className="card">
           <h2 style={{ marginTop: 0 }}>Suggestion</h2>
-          <pre style={{ background: '#f9fafb', padding: 12, borderRadius: 8, whiteSpace: 'pre-wrap' }}>{JSON.stringify(result, null, 2)}</pre>
+          <FormattedAIReport response={result} />
         </div>
       )}
     </div>

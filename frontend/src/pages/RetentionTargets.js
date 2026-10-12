@@ -1,3 +1,4 @@
+import FormattedAIReport from "../components/FormattedAIReport";
 import React, { useState } from 'react';
 import api from '../services/api';
 
@@ -9,6 +10,15 @@ const RetentionTargets = () => {
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
   const [sampleSize, setSampleSize] = useState(0);
+  const samples = [
+    { label: 'Service recovery', playbook: 'Apologize for delays, invite a direct conversation, and ask the manager to follow up within 24 hours.' },
+    { label: 'Product issue', playbook: 'Acknowledge the product concern, document the issue, and offer a replacement after verifying the purchase.' },
+    { label: 'Billing follow-up', playbook: 'Confirm the billing concern privately, investigate the charge, and follow up within two business days.' },
+  ];
+  const applySample = (sample) => {
+    setRetentionPlaybook(sample.playbook);
+    setError(businessId || businessName ? '' : 'Select a real business ID or enter the name of a business with saved reviews.');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,6 +52,7 @@ const RetentionTargets = () => {
       </div>
       {error && <div className="alert alert-error">{error}</div>}
       <form className="card" onSubmit={handleSubmit} style={{ marginBottom: 24 }}>
+        <div className="ai-preset-bar"><span>Choose a playbook for your existing business; its ID and name are preserved</span><div>{samples.map(sample => <button key={sample.label} type="button" className="btn btn-secondary" onClick={() => applySample(sample)}>{sample.label}</button>)}</div></div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
           <div className="form-group">
             <label className="form-label">Business ID</label>
@@ -63,7 +74,7 @@ const RetentionTargets = () => {
       {result && (
         <div className="card">
           <h2 style={{ marginTop: 0 }}>Retention Plan{sampleSize ? ` (sampled ${sampleSize} reviews)` : ''}</h2>
-          <pre style={{ background: '#f9fafb', padding: 12, borderRadius: 8, whiteSpace: 'pre-wrap' }}>{JSON.stringify(result, null, 2)}</pre>
+          <FormattedAIReport response={result} />
         </div>
       )}
     </div>

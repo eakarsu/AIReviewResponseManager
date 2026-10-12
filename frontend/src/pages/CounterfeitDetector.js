@@ -1,3 +1,4 @@
+import FullFieldPresets from '../components/FullFieldPresets';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
@@ -330,6 +331,15 @@ const CounterfeitDetector = () => {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>Add Product for Monitoring</h2>
             <form onSubmit={handleSubmit}>
+              <FullFieldPresets
+                value={formData}
+                presets={[
+                  { label: "Headphones", values: {"product_name": "Studio wireless headphones", "seller_name": "Marketplace Audio Outlet", "platform": "amazon"} },
+                  { label: "Sneakers", values: {"product_name": "Trail running shoes", "seller_name": "Footwear Warehouse", "platform": "ebay"} },
+                  { label: "Accessories", values: {"product_name": "Leather travel bag", "seller_name": "Global Accessories Shop", "platform": "alibaba"} }
+                ]}
+                onChange={(next) => setFormData(next)}
+              />
               <div className="form-group">
                 <label>Product Name *</label>
                 <input
