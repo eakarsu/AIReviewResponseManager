@@ -53,6 +53,7 @@ app.use('/api/solicitations', require('./routes/solicitorRoutes'));
 app.use('/api/settings', require('./routes/settingsRoutes'));
 app.use('/api/businesses', require('./routes/reputationRoutes'));
 app.use('/api/custom-views', require('./routes/customViews'));
+app.use('/api/feature-pack', require('./routes/featurePackRoutes'));
 
 if (process.env.ENABLE_LEGACY_SCHEMA_BOOTSTRAP === 'true') {
   const pool = require('./config/database');

@@ -18,6 +18,7 @@ import Drafts from './pages/Drafts';
 import DraftDetail from './pages/DraftDetail';
 import Settings from './pages/Settings';
 import Layout from './components/Layout';
+import FeaturePackPanel from './components/FeaturePackPanel';
 import GovernedReviewResponses from './pages/GovernedReviewResponses';
 // AI Feature Pages
 import FakeReviewDetector from './pages/FakeReviewDetector';
@@ -95,6 +96,7 @@ function App() {
             <Routes>
         <Route path="/governed-review-responses" element={<ProtectedRoute><GovernedReviewResponses /></ProtectedRoute>} />
         <Route path="/insights/timeline" element={<ProtectedRoute><TimelineView /></ProtectedRoute>} />
+        <Route path="/feature-pack" element={<ProtectedRoute><FeaturePackPanel /></ProtectedRoute>} />
         <Route path="/codex/custom-viz" element={<ProtectedRoute><CodexCustomVizFeature /></ProtectedRoute>} />
         <Route path="/codex/operations" element={<ProtectedRoute><CodexOperationsFeature /></ProtectedRoute>} />
 

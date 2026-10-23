@@ -11,6 +11,7 @@ const legacyProviderGate = createProviderGate(['/']);
 
 router.get('/stats', reviewController.getReviewStats);
 router.get('/export/csv', authMiddleware, reviewController.exportCSV);
+router.get('/export/json', authMiddleware, reviewController.exportJSON);
 router.get('/export/pdf', authMiddleware, reviewController.exportPDF);
 router.get('/', validate(paginationRules), reviewController.getAllReviews);
 router.get('/:id', reviewController.getReviewById);

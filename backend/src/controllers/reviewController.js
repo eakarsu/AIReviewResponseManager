@@ -285,6 +285,19 @@ const exportCSV = async (req, res) => {
   }
 };
 
+const exportJSON = async (req, res) => {
+  try {
+    const { search, status, platform } = req.query;
+    let where = ' WHERE b.user_id = $1'; const params=[req.userId]; let n=1;
+    if (status) { n++; where+=` AND r.response_status = $${n}`; params.push(status); }
+    if (platform) { n++; where+=` AND r.platform = $${n}`; params.push(platform); }
+    if (search) { n++; where+=` AND (r.reviewer_name ILIKE $${n} OR r.review_text ILIKE $${n})`; params.push(`%${search}%`); }
+    const result = await pool.query(`SELECT r.* FROM reviews r JOIN businesses b ON r.business_id = b.id${where} ORDER BY r.created_at DESC`, params);
+    res.setHeader('Content-Type','application/json'); res.setHeader('Content-Disposition','attachment; filename="reviews.json"');
+    return res.json({ exportedAt:new Date().toISOString(), count:result.rows.length, records:result.rows });
+  } catch (error) { console.error('Export JSON error:', error); return res.status(500).json({ error: 'Export failed' }); }
+};
+
 const exportPDF = async (req, res) => {
   try {
     const result = await pool.query(`
@@ -360,6 +373,7 @@ module.exports = {
   generateAIResponse,
   getReviewStats,
   exportCSV,
+  exportJSON,
   exportPDF,
   bulkDelete,
   bulkUpdate
